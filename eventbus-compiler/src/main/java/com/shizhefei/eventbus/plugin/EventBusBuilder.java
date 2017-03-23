@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.Element;
@@ -48,9 +49,14 @@ public class EventBusBuilder {
     public JavaFile build(List<TypeElement> typeElements) {
         List<FieldSpec> fieldSpecs = new ArrayList<>();
         List<MethodSpec> methodSpecs = new ArrayList<>();
+
+        fieldSpecs.add(defaultEventHandler());
+        fieldSpecs.add(eventHandlerMap());
+
         methodSpecs.add(createRegister());
         methodSpecs.add(createUnregister());
         methodSpecs.add(createGetEventImp());
+        methodSpecs.add(withActivity());
 
         TypeSpec.Builder eventBusBuilder = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.PUBLIC)
@@ -70,26 +76,66 @@ public class EventBusBuilder {
         return javaFile;
     }
 
-    /**public static void register(IEvent iEvent) {
-     *   EventHandler.register(iEvent);
-    }*/
+    private FieldSpec defaultEventHandler() {
+        FieldSpec.Builder builder = FieldSpec.builder(TypeUtil.eventHandler, "defaultEventHandler");
+        builder.addModifiers(Modifier.STATIC, Modifier.FINAL, Modifier.PRIVATE);
+        builder.initializer("new $T()", TypeUtil.eventHandler);
+        return builder.build();
+    }
+
+    private FieldSpec eventHandlerMap() {
+        ParameterizedTypeName typeName = ParameterizedTypeName.get(ClassName.get(WeakHashMap.class),TypeUtil.activity,TypeUtil.ieventHandler);
+        FieldSpec.Builder builder = FieldSpec.builder(typeName, "eventHandlerMap");
+        builder.addModifiers(Modifier.STATIC, Modifier.FINAL, Modifier.PRIVATE);
+        builder.initializer("new $T()", typeName);
+        return builder.build();
+    }
+
+//    public static synchronized IEventHandler withActivity(Activity activity) {
+//        EventHandler eventBusImp = eventHandlerMap.get(activity);
+//        if (eventBusImp == null) {
+//            eventBusImp = new EventHandler();
+//            eventHandlerMap.put(activity, eventBusImp);
+//        }
+//        return eventBusImp;
+//    }
+    private MethodSpec withActivity() {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("withActivity");
+        builder.addParameter(TypeUtil.activity, "activity");
+        builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.SYNCHRONIZED);
+        builder.returns(TypeUtil.ieventHandler);
+        builder.addStatement("$T eventBusImp = eventHandlerMap.get(activity)",TypeUtil.ieventHandler);
+        builder.beginControlFlow("if(eventBusImp == null)");
+        builder.addStatement("eventBusImp = new $T()",TypeUtil.eventHandler);
+        builder.addStatement("eventHandlerMap.put(activity, eventBusImp)");
+        builder.endControlFlow();
+        builder.addStatement("return eventBusImp");
+        return builder.build();
+    }
+
+    /**
+     * public static void register(IEvent iEvent) {
+     * EventHandler.register(iEvent);
+     * }
+     */
     private MethodSpec createRegister() {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("register");
         builder.addParameter(TypeUtil.ievent, "iEvent");
         builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
-        builder.addStatement("$T.register(iEvent)", TypeUtil.eventHandler);
+        builder.addStatement("defaultEventHandler.register(iEvent)");
         return builder.build();
     }
 
-    /**public static void unregister(IEvent iEvent) {
-    *    EventHandler.unregister(iEvent);
-    *}
+    /**
+     * public static void unregister(IEvent iEvent) {
+     * EventHandler.unregister(iEvent);
+     * }
      */
     private MethodSpec createUnregister() {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("unregister");
         builder.addParameter(TypeUtil.ievent, "iEvent");
         builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
-        builder.addStatement("$T.unregister(iEvent)", TypeUtil.eventHandler);
+        builder.addStatement("defaultEventHandler.unregister(iEvent)");
         return builder.build();
     }
 
@@ -104,7 +150,7 @@ public class EventBusBuilder {
         builder.addParameter(clasEvent, "eventClass");
         builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
         builder.returns(typeVariableName);
-        builder.addStatement("return $T.get(eventClass)", TypeUtil.eventHandler);
+        builder.addStatement("return defaultEventHandler.get(eventClass)");
         return builder.build();
     }
 
@@ -171,6 +217,7 @@ public class EventBusBuilder {
 
     /**
      * 将TypeParameterElement 转换为TypeVariableName
+     *
      * @param typeParameterElement
      * @return
      */
@@ -186,6 +233,7 @@ public class EventBusBuilder {
 
     /**
      * 实现IEvent接口的匿名内部类的名字
+     *
      * @param name
      * @return
      */
@@ -199,32 +247,57 @@ public class EventBusBuilder {
 //以下是生成的目标类
 //public class EventBus {
 //    static {
-//        EventHandler.registers.put(IAccountEvent.class, new AccountEventImp());
-//        EventHandler.registers.put(IMessageEvent.class, new MessageEventImp());
+//        EventHandler.interfaceImpMap.put(IAccountEvent.class, new com_shizhefei_eventbus_events_IAccountEventImp());
+//        EventHandler.interfaceImpMap.put(IMessageEvent.class, new com_shizhefei_eventbus_events_IMessageEventImp());
+//    }
+//
+//    private static EventHandler defaultEventHandler = new EventHandler();
+//    private static WeakHashMap<Activity, EventHandler> eventHandlerMap = new WeakHashMap<>();
+//
+//    /**
+//     * 获取Activity内通信的EventHandler
+//     *
+//     * @param activity
+//     * @return
+//     */
+//    public static synchronized IEventHandler withActivity(Activity activity) {
+//        EventHandler eventBusImp = eventHandlerMap.get(activity);
+//        if (eventBusImp == null) {
+//            eventBusImp = new EventHandler();
+//            eventHandlerMap.put(activity, eventBusImp);
+//        }
+//        return eventBusImp;
 //    }
 //
 //    public static void register(IEvent iEvent) {
-//        EventHandler.register(iEvent);
+//        defaultEventHandler.register(iEvent);
 //    }
 //
 //    public static void unregister(IEvent iEvent) {
-//        EventHandler.unregister(iEvent);
+//        defaultEventHandler.unregister(iEvent);
 //    }
 //
 //    public static <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
-//        return EventHandler.get(eventClass);
+//        return defaultEventHandler.get(eventClass);
 //    }
 //
-//    private static final class AccountEventImp extends EventHandler.EventProxy<IAccountEvent> implements IAccountEvent {
+//    private static final class com_shizhefei_eventbus_events_IAccountEventImp extends EventHandler.EventProxy<IAccountEvent> implements IAccountEvent {
 //        @Override
 //        public void logout() {
 //            for(IAccountEvent iEvent : iEvents) {
 //                iEvent.logout();
 //            }
 //        }
+//
+//        @Override
+//        public void login() {
+//            for(IAccountEvent iEvent : iEvents) {
+//                iEvent.login();
+//            }
+//        }
 //    }
 //
-//    private static final class MessageEventImp extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
+//    private static final class com_shizhefei_eventbus_events_IMessageEventImp extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
 //        @Override
 //        public void onReceiverMessage(int messageId, String message) {
 //            for(IMessageEvent iEvent : iEvents) {

@@ -12,39 +12,44 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by LuckyJayce on 2017/3/21.
  */
 
-class EventHandler {
+class EventHandler implements IEventHandler {
 
     static final Map<Class<? extends IEvent>, EventProxy> interfaceImpMap = new HashMap<>();
 
     private final static Map<IEvent, Set<EventProxy>> registers = new HashMap<>();
 
-    public static <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
+    public <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
         return (IEVENT) interfaceImpMap.get(eventClass);
     }
 
-    public static synchronized void register(IEvent iEvent) {
-        if (registers.containsKey(iEvent)) {
+    public synchronized void register(IEvent subscriber) {
+        if (registers.containsKey(subscriber)) {
             return;
         }
-        ArrayList<Class<? extends IEvent>> interfaces = Util.getInterfaces(iEvent);
+        ArrayList<Class<? extends IEvent>> interfaces = Util.getInterfaces(subscriber);
         Set<EventProxy> eventProxySet = new HashSet<>();
         for (Class<? extends IEvent> in : interfaces) {
             EventProxy eventProxy = interfaceImpMap.get(in);
             if (eventProxy != null) {
-                eventProxy.register(iEvent);
+                eventProxy.register(subscriber);
                 eventProxySet.add(eventProxy);
             }
         }
-        registers.put(iEvent, eventProxySet);
+        registers.put(subscriber, eventProxySet);
     }
 
-    public static synchronized void unregister(IEvent iEvent) {
-        Set<EventProxy> eventProxySet = registers.remove(iEvent);
+    public synchronized void unregister(IEvent subscriber) {
+        Set<EventProxy> eventProxySet = registers.remove(subscriber);
         if (eventProxySet != null) {
             for (EventProxy eventProxy : eventProxySet) {
-                eventProxy.unregister(iEvent);
+                eventProxy.unregister(subscriber);
             }
         }
+    }
+
+    @Override
+    public synchronized boolean isRegister(IEvent subscriber) {
+        return registers.containsKey(subscriber);
     }
 
     static class EventProxy<IEVENT extends IEvent> implements IEvent {
