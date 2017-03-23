@@ -5,6 +5,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -84,14 +85,14 @@ public class EventBusBuilder {
     }
 
     private FieldSpec eventHandlerMap() {
-        ParameterizedTypeName typeName = ParameterizedTypeName.get(ClassName.get(WeakHashMap.class),TypeUtil.activity,TypeUtil.ieventHandler);
+        ParameterizedTypeName typeName = ParameterizedTypeName.get(ClassName.get(WeakHashMap.class), TypeUtil.activity, TypeUtil.ieventHandler);
         FieldSpec.Builder builder = FieldSpec.builder(typeName, "eventHandlerMap");
         builder.addModifiers(Modifier.STATIC, Modifier.FINAL, Modifier.PRIVATE);
         builder.initializer("new $T()", typeName);
         return builder.build();
     }
 
-//    public static synchronized IEventHandler withActivity(Activity activity) {
+    //    public static synchronized IEventHandler withActivity(Activity activity) {
 //        EventHandler eventBusImp = eventHandlerMap.get(activity);
 //        if (eventBusImp == null) {
 //            eventBusImp = new EventHandler();
@@ -101,12 +102,12 @@ public class EventBusBuilder {
 //    }
     private MethodSpec withActivity() {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("withActivity");
-        builder.addParameter(TypeUtil.activity, "activity");
+        builder.addParameter(ParameterSpec.builder(TypeUtil.activity, "activity").addAnnotation(TypeUtil.NonNull).build());
         builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.SYNCHRONIZED);
         builder.returns(TypeUtil.ieventHandler);
-        builder.addStatement("$T eventBusImp = eventHandlerMap.get(activity)",TypeUtil.ieventHandler);
+        builder.addStatement("$T eventBusImp = eventHandlerMap.get(activity)", TypeUtil.ieventHandler);
         builder.beginControlFlow("if(eventBusImp == null)");
-        builder.addStatement("eventBusImp = new $T()",TypeUtil.eventHandler);
+        builder.addStatement("eventBusImp = new $T()", TypeUtil.eventHandler);
         builder.addStatement("eventHandlerMap.put(activity, eventBusImp)");
         builder.endControlFlow();
         builder.addStatement("return eventBusImp");
