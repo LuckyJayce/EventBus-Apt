@@ -1,10 +1,12 @@
 package com.shizhefei.eventbus;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by LuckyJayce on 2017/3/21.
@@ -12,15 +14,15 @@ import java.util.Set;
 
 class EventHandler {
     
-    static Map<Class<? extends IEvent>, EventProxy> interfaceImpMap = new HashMap<>();
+    static final Map<Class<? extends IEvent>, EventProxy> interfaceImpMap = new HashMap<>();
 
-    private static Map<IEvent, Set<EventProxy>> registers = new HashMap<>();
+    private final static Map<IEvent, Set<EventProxy>> registers = new HashMap<>();
 
     public static <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
         return (IEVENT) interfaceImpMap.get(eventClass);
     }
 
-    public static void register(IEvent iEvent) {
+    public static synchronized void register(IEvent iEvent) {
         if (registers.containsKey(iEvent)) {
             return;
         }
@@ -34,7 +36,7 @@ class EventHandler {
         registers.put(iEvent, eventProxySet);
     }
 
-    public static void unregister(IEvent iEvent) {
+    public static synchronized void unregister(IEvent iEvent) {
         Set<EventProxy> eventProxySet = registers.get(iEvent);
         if (eventProxySet != null) {
             for (EventProxy eventProxy : eventProxySet) {
@@ -44,7 +46,7 @@ class EventHandler {
     }
 
     static class EventProxy<IEVENT extends IEvent> implements IEvent{
-        Set<IEVENT> iEvents = new HashSet<>();
+        Set<IEVENT> iEvents =  Collections.newSetFromMap(new ConcurrentHashMap<IEVENT, Boolean>());
 
         public void register(IEVENT iMessageEvent) {
             iEvents.add(iMessageEvent);
