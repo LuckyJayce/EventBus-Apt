@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.neenbedankt.android-apt'
+apply plugin: 'android-apt'
 
 android {
     compileSdkVersion 25
@@ -27,6 +27,10 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:25.2.0'
     testCompile 'junit:junit:4.12'
-    compile project(path: ':eventbus-api')
-    apt project(':eventbus-compiler')
+//    apt project(':eventbus-compiler')
+//    compile project(path: ':eventbus-api')
+
+    compile 'com.xiaoenai:EventBus-Api:1.0.0'
+    apt 'com.xiaoenai:EventBus-Compiler:1.0.0'
+//    annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
 }

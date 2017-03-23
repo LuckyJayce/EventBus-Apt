@@ -3,6 +3,9 @@
 buildscript {
     repositories {
         jcenter()
+        maven {
+            url "http://172.16.1.10:28081/nexus/content/repositories/releases/"
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.2.3'
@@ -17,6 +20,9 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+        maven {
+            url "http://172.16.1.10:28081/nexus/content/repositories/releases/"
+        }
     }
 }
 
@@ -33,4 +39,9 @@ allprojects {
             links "http://docs.oracle.com/javase/7/docs/api"
         }
     }
+}
+
+ext {
+    VERSION_NAME = '1.0.0'
+    VERSION_CODE = 1
 }

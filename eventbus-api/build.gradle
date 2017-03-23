@@ -8,13 +8,38 @@ sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
 
 
+tasks.withType(Javadoc) {
+    options {
+        encoding "UTF-8"
+        charSet 'UTF-8'
+        links "http://docs.oracle.com/javase/7/docs/api"
+    }
+}
 
-allprojects {
-    tasks.withType(Javadoc) {
-        options {
-            encoding "UTF-8"
-            charSet 'UTF-8'
-            links "http://docs.oracle.com/javase/7/docs/api"
+def infoFile = new File(rootProject.projectDir, "../publish_info.properties");
+if (infoFile.exists()) {
+    apply plugin: 'maven'
+
+    Properties properties = new Properties();
+    properties.load(new FileInputStream(infoFile));
+    def url = properties.getProperty("url");
+    def password = properties.getProperty("password");
+    def userName = properties.getProperty("userName");
+    println("url:" + url + " userName:" + userName + " pass:" + password);
+    //执行 uploadArchives
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                repository(url: uri(url))
+                pom.artifactId = 'EventBus-Api'
+                pom.version = rootProject.ext.VERSION_NAME
+                pom.groupId = 'com.xiaoenai'
+                repository(url: url) {
+                    authentication(userName: userName, password: password)
+                }
+            }
         }
     }
+} else {
+    println(infoFile.getAbsolutePath() + " 文件不存在，该文件用于配置发布的账号信息")
 }
