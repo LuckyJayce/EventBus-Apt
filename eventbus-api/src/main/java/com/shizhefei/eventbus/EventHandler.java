@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 class EventHandler {
-    
+
     static final Map<Class<? extends IEvent>, EventProxy> interfaceImpMap = new HashMap<>();
 
     private final static Map<IEvent, Set<EventProxy>> registers = new HashMap<>();
@@ -30,14 +30,16 @@ class EventHandler {
         Set<EventProxy> eventProxySet = new HashSet<>();
         for (Class<? extends IEvent> in : interfaces) {
             EventProxy eventProxy = interfaceImpMap.get(in);
-            eventProxy.register(iEvent);
-            eventProxySet.add(eventProxy);
+            if (eventProxy != null) {
+                eventProxy.register(iEvent);
+                eventProxySet.add(eventProxy);
+            }
         }
         registers.put(iEvent, eventProxySet);
     }
 
     public static synchronized void unregister(IEvent iEvent) {
-        Set<EventProxy> eventProxySet = registers.get(iEvent);
+        Set<EventProxy> eventProxySet = registers.remove(iEvent);
         if (eventProxySet != null) {
             for (EventProxy eventProxy : eventProxySet) {
                 eventProxy.unregister(iEvent);
@@ -45,8 +47,8 @@ class EventHandler {
         }
     }
 
-    static class EventProxy<IEVENT extends IEvent> implements IEvent{
-        Set<IEVENT> iEvents =  Collections.newSetFromMap(new ConcurrentHashMap<IEVENT, Boolean>());
+    static class EventProxy<IEVENT extends IEvent> implements IEvent {
+        Set<IEVENT> iEvents = Collections.newSetFromMap(new ConcurrentHashMap<IEVENT, Boolean>());
 
         public void register(IEVENT iMessageEvent) {
             iEvents.add(iMessageEvent);
