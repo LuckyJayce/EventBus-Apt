@@ -12,7 +12,9 @@ public interface IEventHandler {
      * @param <EVENT>    IEvent的class的泛型
      * @return
      */
-    <EVENT extends IEvent> EVENT get(Class<EVENT> eventClass);
+    <EVENT extends IEvent> EVENT post(Class<EVENT> eventClass);
+
+    <EVENT extends IEvent> EVENT postMain(Class<EVENT> eventClass);
 
     /**
      * 注册这个对象的所有event接口

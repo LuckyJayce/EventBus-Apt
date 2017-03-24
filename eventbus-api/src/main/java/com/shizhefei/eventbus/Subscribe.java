@@ -48,6 +48,6 @@ public @interface Subscribe {
     /**
      * 执行在哪个线程
      */
-    int threadMode();
+    int receiveThreadMode();
 
 }

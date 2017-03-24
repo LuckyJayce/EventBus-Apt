@@ -42,11 +42,11 @@ public class SenderFragment extends Fragment {
             if (v == sendButton) {
                 String s = editText.getText().toString();
 
-                EventBus.get(IMessageEvent.class).onReceiverMessage(messageId++, s);
+                EventBus.post(IMessageEvent.class).onReceiverMessage(messageId++, s);
 
                 editText.getText().clear();
             } else if (v == logoutButton) {
-                EventBus.get(IAccountEvent.class).logout();
+                EventBus.postMain(IAccountEvent.class).logout();
             }
         }
     };

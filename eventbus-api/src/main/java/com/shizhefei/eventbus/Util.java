@@ -32,19 +32,25 @@ class Util {
 
     /**
      * 判断是直接执行，还是需要post一个runnable
-     * @param subscribe
+     *
+     * @param postMainThread
      * @return true 直接执行，false 需要post一个runnable
      */
-    static boolean isSyncInvoke(Subscribe subscribe) {
-        if (subscribe == null) {
-            return true;
-        }
+    static boolean isSyncInvoke(boolean postMainThread, int receiveThreadMode) {
         boolean isMainThread = Looper.getMainLooper() == Looper.myLooper();
         boolean isInv;
-        switch (subscribe.threadMode()) {
+        switch (receiveThreadMode) {
             case Subscribe.POSTING:
             default:
-                isInv = true;
+                if (postMainThread) {
+                    if (isMainThread) {
+                        isInv = true;
+                    } else {
+                        isInv = false;
+                    }
+                } else {
+                    isInv = true;
+                }
                 break;
             case Subscribe.MAIN:
                 isInv = isMainThread;
@@ -61,11 +67,11 @@ class Util {
 
     private static Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    static void postMain(Runnable runnable){
+    static void postMain(Runnable runnable) {
         mainHandler.post(runnable);
     }
 
-    static void postThread(Runnable runnable){
+    static void postThread(Runnable runnable) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             AsyncTask.THREAD_POOL_EXECUTOR.execute(runnable);
         }

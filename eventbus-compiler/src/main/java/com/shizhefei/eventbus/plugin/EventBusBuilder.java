@@ -56,7 +56,8 @@ public class EventBusBuilder {
 
         methodSpecs.add(createRegister());
         methodSpecs.add(createUnregister());
-        methodSpecs.add(createGetEventImp());
+        methodSpecs.add(createPostEventImp());
+        methodSpecs.add(createPostMainEventImp());
         methodSpecs.add(withActivity());
 
         TypeSpec.Builder eventBusBuilder = TypeSpec.classBuilder(className)
@@ -142,15 +143,27 @@ public class EventBusBuilder {
     /*public static <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
         return EventHandler.get(eventClass);
     }*/
-    private MethodSpec createGetEventImp() {
+    private MethodSpec createPostEventImp() {
         TypeVariableName typeVariableName = TypeVariableName.get("IEVENT").withBounds(TypeUtil.ievent);
         ParameterizedTypeName clasEvent = get(ClassName.get(Class.class), typeVariableName);
-        MethodSpec.Builder builder = MethodSpec.methodBuilder("get");
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("post");
         builder.addTypeVariable(typeVariableName);
         builder.addParameter(clasEvent, "eventClass");
         builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
         builder.returns(typeVariableName);
-        builder.addStatement("return defaultEventHandler.get(eventClass)");
+        builder.addStatement("return defaultEventHandler.post(eventClass)");
+        return builder.build();
+    }
+
+    private MethodSpec createPostMainEventImp() {
+        TypeVariableName typeVariableName = TypeVariableName.get("IEVENT").withBounds(TypeUtil.ievent);
+        ParameterizedTypeName clasEvent = get(ClassName.get(Class.class), typeVariableName);
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("postMain");
+        builder.addTypeVariable(typeVariableName);
+        builder.addParameter(clasEvent, "eventClass");
+        builder.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+        builder.returns(typeVariableName);
+        builder.addStatement("return defaultEventHandler.postMain(eventClass)");
         return builder.build();
     }
 
@@ -206,19 +219,21 @@ public class EventBusBuilder {
 //            public void onReceiverMessage(int messageId, String message) {
 //                for (IMessageEvent iEvent : iEvents) {
 //                    Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
-//                    if (Util.isSyncInvoke(subscribe)) {
+//                    boolean isPostMainThread = isPostMainThread();
+//                    int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
+//                    if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
 //                        iEvent.onReceiverMessage(messageId, message);
 //                    } else {
-//                        final IMessageEvent postIEvent = iEvent;
-//                        final int postMessageId = messageId;
-//                        final String postMessage = message;
+//                        final IMessageEvent post_iEvent = iEvent;
+//                        final int post_messageId = messageId;
+//                        final String post_message = message;
 //                        Runnable runnable = new Runnable() {
 //                            @Override
 //                            public void run() {
-//                                postIEvent.onReceiverMessage(postMessageId, postMessage);
+//                                post_iEvent.onReceiverMessage(post_messageId, post_message);
 //                            }
 //                        };
-//                        if (subscribe.threadMode() == Subscribe.MAIN) {
+//                        if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
 //                            Util.postMain(runnable);
 //                        } else {
 //                            Util.postThread(runnable);
@@ -226,6 +241,7 @@ public class EventBusBuilder {
 //                    }
 //                }
 //            }
+//        }
     private MethodSpec createEventImpMethod(TypeName eventClass, ExecutableElement executableElement) {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(executableElement.getSimpleName().toString());
         methodBuilder.addAnnotation(Override.class);
@@ -260,7 +276,9 @@ public class EventBusBuilder {
         messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + stringBuilder + "  executableElement:" + executableElement);
         methodBuilder.beginControlFlow("for($T iEvent : iEvents)", eventClass);
         methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
-        methodBuilder.beginControlFlow("if($T.isSyncInvoke(subscribe))", TypeUtil.Util);
+        methodBuilder.addStatement("boolean isPostMainThread = isPostMainThread()");
+        methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();");
+        methodBuilder.beginControlFlow("if($T.isSyncInvoke(isPostMainThread, receiveThreadMode))", TypeUtil.Util);
         methodBuilder.addStatement(stringBuilder.toString());
         methodBuilder.nextControlFlow("else");
         methodBuilder.addStatement("final $T post_iEvent = iEvent", eventClass);
@@ -275,7 +293,7 @@ public class EventBusBuilder {
         methodBuilder.endControlFlow();
         methodBuilder.endControlFlow("");
 
-        methodBuilder.beginControlFlow("if (subscribe.threadMode() == Subscribe.MAIN)");
+        methodBuilder.beginControlFlow("if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread))");
         methodBuilder.addStatement("$T.postMain(runnable)", TypeUtil.Util);
         methodBuilder.nextControlFlow("else");
         methodBuilder.addStatement("$T.postThread(runnable)", TypeUtil.Util);
@@ -315,14 +333,13 @@ public class EventBusBuilder {
     }
 }
 
-//以下是生成的目标类
 //public class EventBus {
 //    private static final EventHandler defaultEventHandler = new EventHandler();
 //
 //    private static final WeakHashMap<Activity, IEventHandler> eventHandlerMap = new WeakHashMap<Activity, IEventHandler>();
 //
 //    static {
-//        EventHandler.factoryMap.put(IMessageEvent.class, new com_shizhefei_eventbus_events_IMessageEventFactory());
+//        EventHandler.factoryMap.put(IMessageEvent.class, new com_shizhefei_eventbus_events_IMessageEventImpFactory());
 //    }
 //
 //    public static void register(IEvent iEvent) {
@@ -333,8 +350,12 @@ public class EventBusBuilder {
 //        defaultEventHandler.unregister(iEvent);
 //    }
 //
-//    public static <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
-//        return defaultEventHandler.get(eventClass);
+//    public static <IEVENT extends IEvent> IEVENT postMain(Class<IEVENT> eventClass) {
+//        return defaultEventHandler.postMain(eventClass);
+//    }
+//
+//    public static <IEVENT extends IEvent> IEVENT post(Class<IEVENT> eventClass) {
+//        return defaultEventHandler.post(eventClass);
 //    }
 //
 //    public static synchronized IEventHandler withActivity(@NonNull Activity activity) {
@@ -346,31 +367,33 @@ public class EventBusBuilder {
 //        return eventBusImp;
 //    }
 //
-//    private static final class com_shizhefei_eventbus_events_IMessageEventFactory implements EventHandler.EventImpFactory<EventHandler.EventProxy<IMessageEvent>> {
-//
+//    private static final class com_shizhefei_eventbus_events_IMessageEventImpFactory extends EventHandler.EventImpFactory<EventHandler.EventProxy<IMessageEvent>> {
 //        @Override
 //        public EventHandler.EventProxy<IMessageEvent> create() {
 //            return new EventImp();
 //        }
 //
 //        private static final class EventImp extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
+//
 //            @Override
 //            public void onReceiverMessage(int messageId, String message) {
 //                for (IMessageEvent iEvent : iEvents) {
 //                    Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
-//                    if (Util.isSyncInvoke(subscribe)) {
+//                    boolean isPostMainThread = isPostMainThread();
+//                    int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
+//                    if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
 //                        iEvent.onReceiverMessage(messageId, message);
 //                    } else {
-//                        final IMessageEvent postIEvent = iEvent;
-//                        final int postMessageId = messageId;
-//                        final String postMessage = message;
+//                        final IMessageEvent post_iEvent = iEvent;
+//                        final int post_messageId = messageId;
+//                        final String post_message = message;
 //                        Runnable runnable = new Runnable() {
 //                            @Override
 //                            public void run() {
-//                                postIEvent.onReceiverMessage(postMessageId, postMessage);
+//                                post_iEvent.onReceiverMessage(post_messageId, post_message);
 //                            }
 //                        };
-//                        if (subscribe.threadMode() == Subscribe.MAIN) {
+//                        if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
 //                            Util.postMain(runnable);
 //                        } else {
 //                            Util.postThread(runnable);

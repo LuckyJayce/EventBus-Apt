@@ -10,13 +10,14 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.shizhefei.eventbus.demo.R;
+import com.shizhefei.eventbus.events.IAccountEvent;
 import com.shizhefei.eventbus.events.IMessageEvent;
 
 /**
  * Created by LuckyJayce on 2017/3/20.
  */
-
-public class ReceiverFragment extends Fragment implements IMessageEvent{
+@Subscribe(receiveThreadMode = Subscribe.MAIN)
+public class ReceiverFragment extends Fragment implements IMessageEvent, IAccountEvent{
     private TextView textView;
     private StringBuilder stringBuilder = new StringBuilder();
 
@@ -35,6 +36,8 @@ public class ReceiverFragment extends Fragment implements IMessageEvent{
         EventBus.register(iMessageEvent_posting);
         EventBus.register(iMessageEvent_background);
         EventBus.register(iMessageEvent_async);
+        EventBus.register(this);
+
         return view;
     }
 
@@ -45,6 +48,7 @@ public class ReceiverFragment extends Fragment implements IMessageEvent{
         EventBus.unregister(iMessageEvent_posting);
         EventBus.unregister(iMessageEvent_background);
         EventBus.unregister(iMessageEvent_async);
+        EventBus.unregister(this);
     }
 
     @Override
@@ -53,7 +57,19 @@ public class ReceiverFragment extends Fragment implements IMessageEvent{
         textView.setText(stringBuilder);
     }
 
-    @Subscribe(threadMode = Subscribe.MAIN)
+    @Override
+    public void logout() {
+        stringBuilder.insert(0, "注销登陆\n");
+        textView.setText(stringBuilder);
+    }
+
+    @Override
+    public void login() {
+        stringBuilder.insert(0, "正在登陆\n");
+        textView.setText(stringBuilder);
+    }
+
+    @Subscribe(receiveThreadMode = Subscribe.MAIN)
     private class MyIMessageEvent implements IMessageEvent {
         @Override
         public void onReceiverMessage(int messageId, String message) {
@@ -61,7 +77,7 @@ public class ReceiverFragment extends Fragment implements IMessageEvent{
         }
     };
 
-    @Subscribe(threadMode = Subscribe.POSTING)
+    @Subscribe(receiveThreadMode = Subscribe.POSTING)
     private class MyIMessageEvent2 implements IMessageEvent {
         @Override
         public void onReceiverMessage(int messageId, String message) {
@@ -69,7 +85,7 @@ public class ReceiverFragment extends Fragment implements IMessageEvent{
         }
     };
 
-    @Subscribe(threadMode = Subscribe.BACKGROUND)
+    @Subscribe(receiveThreadMode = Subscribe.BACKGROUND)
     private class MyIMessageEvent3 implements IMessageEvent {
         @Override
         public void onReceiverMessage(int messageId, String message) {
@@ -77,7 +93,7 @@ public class ReceiverFragment extends Fragment implements IMessageEvent{
         }
     };
 
-    @Subscribe(threadMode = Subscribe.ASYNC)
+    @Subscribe(receiveThreadMode = Subscribe.ASYNC)
     private class MyIMessageEvent4 implements IMessageEvent {
         @Override
         public void onReceiverMessage(int messageId, String message) {
