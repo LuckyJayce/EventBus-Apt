@@ -277,7 +277,7 @@ public class EventBusBuilder {
         methodBuilder.beginControlFlow("for($T iEvent : iEvents)", eventClass);
         methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
         methodBuilder.addStatement("boolean isPostMainThread = isPostMainThread()");
-        methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();");
+        methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode()");
         methodBuilder.beginControlFlow("if($T.isSyncInvoke(isPostMainThread, receiveThreadMode))", TypeUtil.Util);
         methodBuilder.addStatement(stringBuilder.toString());
         methodBuilder.nextControlFlow("else");
