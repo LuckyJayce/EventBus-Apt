@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.shizhefei.eventbus.demo.R;
 import com.shizhefei.eventbus.events.IAccountEvent;
 import com.shizhefei.eventbus.events.IMessageEvent;
 

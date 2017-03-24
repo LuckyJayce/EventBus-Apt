@@ -14,12 +14,24 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class EventHandler implements IEventHandler {
 
-    static final Map<Class<? extends IEvent>, EventProxy> interfaceImpMap = new HashMap<>();
+    interface EventImpFactory<IEVENT extends EventProxy> {
+        IEVENT create();
+    }
 
-    private final static Map<IEvent, Set<EventProxy>> registers = new HashMap<>();
+    static final Map<Class<? extends IEvent>, EventImpFactory<? extends IEvent>> factoryMap = new HashMap<>();
 
-    public <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
-        return (IEVENT) interfaceImpMap.get(eventClass);
+    private final Map<Class<? extends IEvent>, EventHandler.EventProxy> interfaceImpMap = new HashMap<>();
+
+    private final Map<IEvent, Set<EventProxy>> registers = new HashMap<>();
+
+    public synchronized  <IEVENT extends IEvent> IEVENT get(Class<IEVENT> eventClass) {
+        EventProxy eventProxy = interfaceImpMap.get(eventClass);
+        if (eventProxy == null) {
+            EventImpFactory<? extends IEvent> eventImpFactory = factoryMap.get(eventClass);
+            eventProxy = eventImpFactory.create();
+            interfaceImpMap.put(eventClass, eventProxy);
+        }
+        return eventClass.cast(eventProxy);
     }
 
     public synchronized void register(IEvent subscriber) {
@@ -29,7 +41,7 @@ class EventHandler implements IEventHandler {
         ArrayList<Class<? extends IEvent>> interfaces = Util.getInterfaces(subscriber);
         Set<EventProxy> eventProxySet = new HashSet<>();
         for (Class<? extends IEvent> in : interfaces) {
-            EventProxy eventProxy = interfaceImpMap.get(in);
+            EventProxy eventProxy = (EventProxy) get(in);
             if (eventProxy != null) {
                 eventProxy.register(subscriber);
                 eventProxySet.add(eventProxy);

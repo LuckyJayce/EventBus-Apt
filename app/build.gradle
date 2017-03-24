@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        applicationId "com.shizhefei.eventbus"
+        applicationId "com.shizhefei.eventbus.demo"
         minSdkVersion 10
         targetSdkVersion 25
         versionCode 1
@@ -26,10 +26,11 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:25.2.0'
     testCompile 'junit:junit:4.12'
-    compile project(path: ':eventbus-api')
+    compile project(':eventbus-api')
+    compile project(':evenbus-annotation')
     annotationProcessor project(':eventbus-compiler')
-
-//    compile 'com.xiaoenai:EventBus-Api:1.0.4'
-//    annotationProcessor 'com.xiaoenai:EventBus-Compiler:1.0.4'
-//    annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
+    //    compile 'com.xiaoenai:EventBus-Api:1.0.0'
+    //    compile 'com.xiaoenai:EventBus-Annotation:1.0.0'
+    //    annotationProcessor 'com.xiaoenai:EventBus-Compiler:1.0.0'
+    //    annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
 }

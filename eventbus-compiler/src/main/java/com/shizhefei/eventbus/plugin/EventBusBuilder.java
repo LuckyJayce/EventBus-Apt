@@ -22,7 +22,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
-import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
@@ -32,6 +31,7 @@ import javax.tools.Diagnostic;
 import static com.squareup.javapoet.ParameterizedTypeName.get;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
+import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
 /**
@@ -66,11 +66,10 @@ public class EventBusBuilder {
 
         CodeBlock.Builder staticBlockBuilder = CodeBlock.builder();
         for (TypeElement typeElement : typeElements) {
-            eventBusBuilder.addType(createEventImp(typeElement));
-            PackageElement packageElement = (PackageElement) typeElement.getEnclosingElement();
-            ClassName eventImpClassName = ClassName.get(packageElement.getQualifiedName().toString(), typeElement.getSimpleName().toString());
-//          生成  EventHandler.registers.put(IMessageEvent.class, new MessageEventImp()) 代码;
-            staticBlockBuilder.add("$T.interfaceImpMap.put($T.class, new $L());\n", TypeUtil.eventHandler, eventImpClassName, createClassName(typeElement.getQualifiedName()));
+            eventBusBuilder.addType(createEventImpFactory(typeElement));
+            ClassName eventImpClassName = ClassName.get(typeElement);
+//          生成  EventHandler.registers.put(IMessageEvent.class, new MessageEventImpFactory()) 代码;
+            staticBlockBuilder.add("$T.factoryMap.put($T.class, new $L());\n", TypeUtil.eventHandler, eventImpClassName, createFactoryClassName(typeElement.getQualifiedName()));
         }
         eventBusBuilder.addStaticBlock(staticBlockBuilder.build());
         JavaFile javaFile = JavaFile.builder(packageName, eventBusBuilder.build()).indent("\t").build();
@@ -155,6 +154,28 @@ public class EventBusBuilder {
         return builder.build();
     }
 
+
+    //    private static final class com_shizhefei_eventbus_events_IMessageEventFactory implements EventHandler.EventImpFactory<EventHandler.EventProxy<IMessageEvent>> {
+//
+//        @Override
+//        public EventHandler.EventProxy<IMessageEvent> create() {
+//            return new EventImp();
+//        }
+    private TypeSpec createEventImpFactory(TypeElement typeElement) {
+        TypeName eventClass = TypeName.get(typeElement.asType());
+        TypeSpec.Builder eventImpFactory = TypeSpec.classBuilder(createFactoryClassName(typeElement.getQualifiedName())).addModifiers(FINAL, STATIC, PRIVATE);
+        for (TypeParameterElement typeParameterElement : typeElement.getTypeParameters()) {
+            eventImpFactory.addTypeVariable(toTypeVariableName(typeParameterElement));
+        }
+        ParameterizedTypeName eventImpTypeName = ParameterizedTypeName.get(TypeUtil.EventProxy, eventClass);
+        eventImpFactory.addSuperinterface(ParameterizedTypeName.get(TypeUtil.EventProxyFactory, eventImpTypeName));
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("create").addModifiers(PUBLIC).addAnnotation(Override.class).returns(eventImpTypeName);
+        builder.addStatement("return new EventImp()");
+        eventImpFactory.addMethod(builder.build());
+        eventImpFactory.addType(createEventImp(typeElement, "EventImp", eventImpTypeName, eventClass));
+        return eventImpFactory.build();
+    }
+
     /**
      * <pre>
      * private static class MessageEventImp extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
@@ -166,14 +187,13 @@ public class EventBusBuilder {
      *    }
      * }<pre/>
      */
-    private TypeSpec createEventImp(TypeElement typeElement) {
-        TypeName eventClass = TypeName.get(typeElement.asType());
-        TypeSpec.Builder eventImp = TypeSpec.classBuilder(createClassName(typeElement.getQualifiedName())).addModifiers(FINAL, STATIC, PRIVATE);
+    private TypeSpec createEventImp(TypeElement typeElement, String eventImpName, ParameterizedTypeName eventImpTypeName, TypeName eventClass) {
+        TypeSpec.Builder eventImp = TypeSpec.classBuilder(eventImpName).addModifiers(FINAL, STATIC, PRIVATE);
         eventImp.addSuperinterface(eventClass);
         for (TypeParameterElement typeParameterElement : typeElement.getTypeParameters()) {
             eventImp.addTypeVariable(toTypeVariableName(typeParameterElement));
         }
-        eventImp.superclass(ParameterizedTypeName.get(TypeUtil.EventProxy, eventClass));
+        eventImp.superclass(eventImpTypeName);
         for (Element element : typeElement.getEnclosedElements()) {
             ExecutableElement executableElement = (ExecutableElement) element;
             MethodSpec methodSpec = createEventImpMethod(eventClass, executableElement);
@@ -182,7 +202,30 @@ public class EventBusBuilder {
         return eventImp.build();
     }
 
-
+    //            @Override
+//            public void onReceiverMessage(int messageId, String message) {
+//                for (IMessageEvent iEvent : iEvents) {
+//                    Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
+//                    if (Util.isSyncInvoke(subscribe)) {
+//                        iEvent.onReceiverMessage(messageId, message);
+//                    } else {
+//                        final IMessageEvent postIEvent = iEvent;
+//                        final int postMessageId = messageId;
+//                        final String postMessage = message;
+//                        Runnable runnable = new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                postIEvent.onReceiverMessage(postMessageId, postMessage);
+//                            }
+//                        };
+//                        if (subscribe.threadMode() == Subscribe.MAIN) {
+//                            Util.postMain(runnable);
+//                        } else {
+//                            Util.postThread(runnable);
+//                        }
+//                    }
+//                }
+//            }
     private MethodSpec createEventImpMethod(TypeName eventClass, ExecutableElement executableElement) {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(executableElement.getSimpleName().toString());
         methodBuilder.addAnnotation(Override.class);
@@ -199,19 +242,46 @@ public class EventBusBuilder {
 
         List<? extends VariableElement> typeParameters = executableElement.getParameters();
         StringBuilder stringBuilder = new StringBuilder("iEvent.").append(executableElement.getSimpleName().toString()).append("(");
+        StringBuilder stringBuilder2 = new StringBuilder("post_iEvent.").append(executableElement.getSimpleName().toString()).append("(");
         for (VariableElement typeParameter : typeParameters) {
             String paramsName = typeParameter.getSimpleName().toString();
             methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName);
             stringBuilder.append(paramsName).append(", ");
+            stringBuilder2.append("post_").append(paramsName).append(", ");
         }
         if (stringBuilder.charAt(stringBuilder.length() - 2) == ',' && stringBuilder.charAt(stringBuilder.length() - 1) == ' ') {
             stringBuilder.deleteCharAt(stringBuilder.length() - 1);
             stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+            stringBuilder2.deleteCharAt(stringBuilder2.length() - 1);
+            stringBuilder2.deleteCharAt(stringBuilder2.length() - 1);
         }
         stringBuilder.append(")");
+        stringBuilder2.append(")");
         messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + stringBuilder + "  executableElement:" + executableElement);
         methodBuilder.beginControlFlow("for($T iEvent : iEvents)", eventClass);
+        methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
+        methodBuilder.beginControlFlow("if($T.isSyncInvoke(subscribe))", TypeUtil.Util);
         methodBuilder.addStatement(stringBuilder.toString());
+        methodBuilder.nextControlFlow("else");
+        methodBuilder.addStatement("final $T post_iEvent = iEvent", eventClass);
+        for (VariableElement typeParameter : typeParameters) {
+            String p = typeParameter.getSimpleName().toString();
+            methodBuilder.addStatement("final $T $L = $L", TypeName.get(typeParameter.asType()), "post_" + p, p);
+        }
+        methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
+        methodBuilder.addCode("@Override\n");
+        methodBuilder.beginControlFlow("public void run()");
+        methodBuilder.addStatement(stringBuilder2.toString());
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow("");
+
+        methodBuilder.beginControlFlow("if (subscribe.threadMode() == Subscribe.MAIN)");
+        methodBuilder.addStatement("$T.postMain(runnable)", TypeUtil.Util);
+        methodBuilder.nextControlFlow("else");
+        methodBuilder.addStatement("$T.postThread(runnable)", TypeUtil.Util);
+        methodBuilder.endControlFlow();
+
+        methodBuilder.endControlFlow();
         methodBuilder.endControlFlow();
         return methodBuilder.build();
     }
@@ -238,36 +308,21 @@ public class EventBusBuilder {
      * @param name
      * @return
      */
-    private String createClassName(Name name) {
+    private String createFactoryClassName(Name name) {
         String s = name.toString();
         s = s.replaceAll("\\.", "_");
-        return s + "Imp";
+        return s + "ImpFactory";
     }
 }
 
 //以下是生成的目标类
 //public class EventBus {
+//    private static final EventHandler defaultEventHandler = new EventHandler();
+//
+//    private static final WeakHashMap<Activity, IEventHandler> eventHandlerMap = new WeakHashMap<Activity, IEventHandler>();
+//
 //    static {
-//        EventHandler.interfaceImpMap.put(IAccountEvent.class, new com_shizhefei_eventbus_events_IAccountEventImp());
-//        EventHandler.interfaceImpMap.put(IMessageEvent.class, new com_shizhefei_eventbus_events_IMessageEventImp());
-//    }
-//
-//    private static EventHandler defaultEventHandler = new EventHandler();
-//    private static WeakHashMap<Activity, EventHandler> eventHandlerMap = new WeakHashMap<>();
-//
-//    /**
-//     * 获取Activity内通信的EventHandler
-//     *
-//     * @param activity
-//     * @return
-//     */
-//    public static synchronized IEventHandler withActivity(Activity activity) {
-//        EventHandler eventBusImp = eventHandlerMap.get(activity);
-//        if (eventBusImp == null) {
-//            eventBusImp = new EventHandler();
-//            eventHandlerMap.put(activity, eventBusImp);
-//        }
-//        return eventBusImp;
+//        EventHandler.factoryMap.put(IMessageEvent.class, new com_shizhefei_eventbus_events_IMessageEventFactory());
 //    }
 //
 //    public static void register(IEvent iEvent) {
@@ -282,27 +337,46 @@ public class EventBusBuilder {
 //        return defaultEventHandler.get(eventClass);
 //    }
 //
-//    private static final class com_shizhefei_eventbus_events_IAccountEventImp extends EventHandler.EventProxy<IAccountEvent> implements IAccountEvent {
-//        @Override
-//        public void logout() {
-//            for(IAccountEvent iEvent : iEvents) {
-//                iEvent.logout();
-//            }
+//    public static synchronized IEventHandler withActivity(@NonNull Activity activity) {
+//        IEventHandler eventBusImp = eventHandlerMap.get(activity);
+//        if (eventBusImp == null) {
+//            eventBusImp = new EventHandler();
+//            eventHandlerMap.put(activity, eventBusImp);
 //        }
-//
-//        @Override
-//        public void login() {
-//            for(IAccountEvent iEvent : iEvents) {
-//                iEvent.login();
-//            }
-//        }
+//        return eventBusImp;
 //    }
 //
-//    private static final class com_shizhefei_eventbus_events_IMessageEventImp extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
+//    private static final class com_shizhefei_eventbus_events_IMessageEventFactory implements EventHandler.EventImpFactory<EventHandler.EventProxy<IMessageEvent>> {
+//
 //        @Override
-//        public void onReceiverMessage(int messageId, String message) {
-//            for(IMessageEvent iEvent : iEvents) {
-//                iEvent.onReceiverMessage(messageId, message);
+//        public EventHandler.EventProxy<IMessageEvent> create() {
+//            return new EventImp();
+//        }
+//
+//        private static final class EventImp extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
+//            @Override
+//            public void onReceiverMessage(int messageId, String message) {
+//                for (IMessageEvent iEvent : iEvents) {
+//                    Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
+//                    if (Util.isSyncInvoke(subscribe)) {
+//                        iEvent.onReceiverMessage(messageId, message);
+//                    } else {
+//                        final IMessageEvent postIEvent = iEvent;
+//                        final int postMessageId = messageId;
+//                        final String postMessage = message;
+//                        Runnable runnable = new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                postIEvent.onReceiverMessage(postMessageId, postMessage);
+//                            }
+//                        };
+//                        if (subscribe.threadMode() == Subscribe.MAIN) {
+//                            Util.postMain(runnable);
+//                        } else {
+//                            Util.postThread(runnable);
+//                        }
+//                    }
+//                }
 //            }
 //        }
 //    }

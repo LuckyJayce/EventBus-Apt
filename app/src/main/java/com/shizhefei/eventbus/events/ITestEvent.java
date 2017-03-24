@@ -8,7 +8,7 @@ import com.shizhefei.eventbus.annotation.Event;
  */
 @Event
 public interface ITestEvent extends IEvent{
-    <E extends IEvent & IAccountEvent, H> void onTest(E event, H h, int messageId, String message) throws Exception;
+    <E extends IEvent & IAccountEvent, H> void onTest(E event, H h, int messageId, String message);
 
     <E extends IEvent & IAccountEvent, H> void onTest(E event, H h, int messageId);
 

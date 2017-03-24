@@ -1,0 +1,9 @@
+apply plugin: 'java'
+apply from: rootProject.file('z_publish.gradle')
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
