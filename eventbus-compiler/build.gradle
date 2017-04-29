@@ -6,6 +6,16 @@ targetCompatibility = 1.7
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.google.auto.service:auto-service:1.0-rc2'
-    compile 'com.squareup:javapoet:1.7.0'
+    compile 'com.squareup:javapoet:1.8.0'
     compile project(':evenbus-annotation')
+}
+
+allprojects {
+    tasks.withType(Javadoc) {
+        options {
+            encoding "UTF-8"
+            charSet 'UTF-8'
+            links "http://docs.oracle.com/javase/7/docs/api"
+        }
+    }
 }

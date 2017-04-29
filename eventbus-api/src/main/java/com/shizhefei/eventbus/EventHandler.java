@@ -14,38 +14,37 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class EventHandler implements IEventHandler {
 
-    static final Map<Class<? extends IEvent>, EventImpFactory<? extends IEvent>> factoryMap = new HashMap<>();
-
     private final Map<Class<? extends IEvent>, EventImpCollections> interfaceImpMap = new HashMap<>();
 
     private final Map<IEvent, Set<EventImpCollections>> registers = new HashMap<>();
 
     @Override
-    public synchronized <IEVENT extends IEvent> IEVENT post(Class<IEVENT> eventClass) {
+    public synchronized <IEVENT extends IEvent> IEVENT post(Class<? extends EventProxy<IEVENT>> eventProxyClass) {
+        Class<IEVENT> eventClass = getEventClass(eventProxyClass);
         EventImpCollections<IEVENT> eventImpCollections = getEventData(eventClass);
         EventProxy<IEVENT> eventProxy = eventImpCollections.eventProxy;
         if (eventProxy == null) {
-            EventImpFactory<? extends IEvent> eventImpFactory = factoryMap.get(eventClass);
-            eventProxy = eventImpFactory.create();
-            eventProxy.setPostMainThread(false);
-            eventProxy.setEvents(eventImpCollections.iEvents);
+            eventProxy = EventProxyFactory.create(eventProxyClass, false, eventImpCollections.iEvents);
         }
         eventImpCollections.eventProxy = eventProxy;
         return eventClass.cast(eventProxy);
     }
 
     @Override
-    public synchronized <IEVENT extends IEvent> IEVENT postMain(Class<IEVENT> eventClass) {
+    public synchronized <IEVENT extends IEvent> IEVENT postMain(Class<? extends EventProxy<IEVENT>> eventProxyClass) {
+        Class<IEVENT> eventClass = getEventClass(eventProxyClass);
         EventImpCollections<IEVENT> eventImpCollections = getEventData(eventClass);
         EventProxy<IEVENT> eventProxy = eventImpCollections.mainEventProxy;
         if (eventProxy == null) {
-            EventImpFactory<? extends IEvent> eventImpFactory = factoryMap.get(eventClass);
-            eventProxy = eventImpFactory.create();
-            eventProxy.setPostMainThread(true);
-            eventProxy.setEvents(eventImpCollections.iEvents);
+            eventProxy = EventProxyFactory.create(eventProxyClass, false, eventImpCollections.iEvents);
         }
         eventImpCollections.mainEventProxy = eventProxy;
         return eventClass.cast(eventProxy);
+    }
+
+    public synchronized <IEVENT extends IEvent> Class<IEVENT> getEventClass(Class<? extends EventProxy<IEVENT>> eventClass) {
+        Class<?>[] classes = eventClass.getInterfaces();
+        return (Class<IEVENT>) classes[0];
     }
 
     private synchronized <IEVENT extends IEvent> EventImpCollections<IEVENT> getEventData(Class<IEVENT> eventClass) {
@@ -89,27 +88,10 @@ class EventHandler implements IEventHandler {
         return registers.containsKey(subscriber);
     }
 
-     interface EventImpFactory<IEVENT extends EventProxy> {
+    interface EventImpFactory<IEVENT extends EventProxy> {
 
-         IEVENT create();
+        IEVENT create();
 
-    }
-
-    static class EventProxy<IEVENT extends IEvent> implements IEvent {
-        private boolean postMainThread;
-        Set<IEVENT> iEvents;
-
-        public void setPostMainThread(boolean postMainThread) {
-            this.postMainThread = postMainThread;
-        }
-
-        public boolean isPostMainThread() {
-            return postMainThread;
-        }
-
-        public void setEvents(Set<IEVENT> events) {
-            this.iEvents = events;
-        }
     }
 
     private static class EventImpCollections<IEVENT extends IEvent> {

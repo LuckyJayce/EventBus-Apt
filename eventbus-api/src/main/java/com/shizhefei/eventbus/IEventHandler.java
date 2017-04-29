@@ -8,13 +8,13 @@ public interface IEventHandler {
     /**
      * 获取动态代理实现的IEvent，用来发送事件
      *
-     * @param eventClass 事件的class
+     * @param eventProxyClass 事件的proxyClass
      * @param <EVENT>    IEvent的class的泛型
      * @return
      */
-    <EVENT extends IEvent> EVENT post(Class<EVENT> eventClass);
+    <EVENT extends IEvent> EVENT post(Class<? extends EventProxy<EVENT>> eventProxyClass);
 
-    <EVENT extends IEvent> EVENT postMain(Class<EVENT> eventClass);
+    <EVENT extends IEvent> EVENT postMain(Class<? extends EventProxy<EVENT>> eventProxyClass);
 
     /**
      * 注册这个对象的所有event接口

@@ -6,7 +6,6 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeName;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -52,23 +51,24 @@ public class EventBusProcessor extends AbstractProcessor {
     }
 
     private void processEventInterfaces(RoundEnvironment roundEnv) throws IllegalArgumentException {
-        List<TypeElement> eventElements = new ArrayList<>();
         for (Element element : roundEnv.getElementsAnnotatedWith(Event.class)) {
             if (element instanceof TypeElement) {
                 TypeElement typeElement = (TypeElement) element;
                 if (typeElement.getKind() == ElementKind.INTERFACE) {
                     List<? extends TypeMirror> interfaces = ((TypeElement) element).getInterfaces();
                     for (TypeMirror anInterface : interfaces) {
-                       if(TypeUtil.ievent.equals( TypeName.get(anInterface))){
-                           eventElements.add(typeElement);
-                           break;
-                       }
+                        if (TypeUtil.ievent.equals(TypeName.get(anInterface))) {
+                            write(typeElement);
+                            break;
+                        }
                     }
                 }
             }
         }
+    }
 
-        JavaFile javaFile = new EventBusBuilder(messager).build(eventElements);
+    private void write(TypeElement typeElement) {
+        JavaFile javaFile = new EventProxyBuilder(messager).build(typeElement);
         try {
             javaFile.writeTo(processingEnvironment.getFiler());
         } catch (IOException e) {
@@ -77,7 +77,6 @@ public class EventBusProcessor extends AbstractProcessor {
     }
 
     /**
-     * 打印测试的信息
      * @param roundEnv
      */
     private void ppppp(RoundEnvironment roundEnv) {
@@ -143,7 +142,6 @@ public class EventBusProcessor extends AbstractProcessor {
 
 
     /**
-     * 用来指定你使用的 java 版本
      */
     @Override
     public SourceVersion getSupportedSourceVersion() {

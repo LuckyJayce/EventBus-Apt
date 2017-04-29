@@ -11,10 +11,10 @@ import java.util.ArrayList;
 /**
  * Created by LuckyJayce on 2016/7/23.
  */
-class Util {
+public class Util {
 
     @SuppressWarnings("unchecked")
-    static ArrayList<Class<? extends IEvent>> getInterfaces(IEvent event) {
+   public static ArrayList<Class<? extends IEvent>> getInterfaces(IEvent event) {
         Class<?>[] interfaces = event.getClass().getInterfaces();
         ArrayList<Class<? extends IEvent>> eventClass = new ArrayList<>();
         for (Class<?> in : interfaces) {
@@ -26,7 +26,7 @@ class Util {
     }
 
 
-    static boolean isExtendsInterface(Class<?> in, Class<?> superClass) {
+    public static boolean isExtendsInterface(Class<?> in, Class<?> superClass) {
         return superClass.isAssignableFrom(in);
     }
 
@@ -36,7 +36,7 @@ class Util {
      * @param postMainThread
      * @return true 直接执行，false 需要post一个runnable
      */
-    static boolean isSyncInvoke(boolean postMainThread, int receiveThreadMode) {
+    public static boolean isSyncInvoke(boolean postMainThread, int receiveThreadMode) {
         boolean isMainThread = Looper.getMainLooper() == Looper.myLooper();
         boolean isInv;
         switch (receiveThreadMode) {
@@ -67,11 +67,11 @@ class Util {
 
     private static Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    static void postMain(Runnable runnable) {
+    public static void postMain(Runnable runnable) {
         mainHandler.post(runnable);
     }
 
-    static void postThread(Runnable runnable) {
+    public static void postThread(Runnable runnable) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             AsyncTask.THREAD_POOL_EXECUTOR.execute(runnable);
         }

@@ -1,5 +1,6 @@
 package com.shizhefei.eventbus.plugin;
 
+import com.google.common.eventbus.Subscribe;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -305,7 +306,6 @@ public class EventBusBuilder {
     }
 
     /**
-     * 将TypeParameterElement 转换为TypeVariableName
      *
      * @param typeParameterElement
      * @return
@@ -321,7 +321,6 @@ public class EventBusBuilder {
 
 
     /**
-     * 实现IEvent接口的匿名内部类的名字
      *
      * @param name
      * @return

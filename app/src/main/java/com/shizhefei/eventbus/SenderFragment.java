@@ -3,6 +3,7 @@ package com.shizhefei.eventbus;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,8 +11,9 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import com.shizhefei.eventbus.demo.R;
-import com.shizhefei.eventbus.events.IAccountEvent;
-import com.shizhefei.eventbus.events.IMessageEvent;
+import com.shizhefei.eventbus.events.IAccountEventProxy;
+import com.shizhefei.eventbus.events.IMessageEventProxy;
+
 
 /**
  * Created by LuckyJayce on 2017/3/20.
@@ -42,11 +44,13 @@ public class SenderFragment extends Fragment {
             if (v == sendButton) {
                 String s = editText.getText().toString();
 
-                EventBus.post(IMessageEvent.class).onReceiverMessage(messageId++, s);
+                long time = System.currentTimeMillis();
+                EventBus.post(IMessageEventProxy.class).onReceiverMessage(messageId++, s);
+                Log.d("SenderFragment", " time:" + (System.currentTimeMillis() - time));
 
                 editText.getText().clear();
             } else if (v == logoutButton) {
-                EventBus.postMain(IAccountEvent.class).logout();
+                EventBus.postMain(IAccountEventProxy.class).logout();
             }
         }
     };
