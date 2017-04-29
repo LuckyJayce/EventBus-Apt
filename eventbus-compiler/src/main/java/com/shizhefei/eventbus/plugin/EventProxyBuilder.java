@@ -88,7 +88,6 @@ public class EventProxyBuilder {
     }
 
     /**
-     *
      * @param name
      * @return
      */
@@ -140,37 +139,27 @@ public class EventProxyBuilder {
 
         List<? extends VariableElement> typeParameters = executableElement.getParameters();
         StringBuilder invokeStringBuilder = new StringBuilder("iEvent.").append(executableElement.getSimpleName().toString()).append("(");
-        StringBuilder invokeRunnableStringBuilder = new StringBuilder("post_iEvent.").append(executableElement.getSimpleName().toString()).append("(");
         for (VariableElement typeParameter : typeParameters) {
             String paramsName = typeParameter.getSimpleName().toString();
-            methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName);
+            methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName, Modifier.FINAL);
             invokeStringBuilder.append(paramsName).append(", ");
-            invokeRunnableStringBuilder.append("post_").append(paramsName).append(", ");
         }
         if (invokeStringBuilder.charAt(invokeStringBuilder.length() - 2) == ',' && invokeStringBuilder.charAt(invokeStringBuilder.length() - 1) == ' ') {
             invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
             invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
-            invokeRunnableStringBuilder.deleteCharAt(invokeRunnableStringBuilder.length() - 1);
-            invokeRunnableStringBuilder.deleteCharAt(invokeRunnableStringBuilder.length() - 1);
         }
         invokeStringBuilder.append(")");
-        invokeRunnableStringBuilder.append(")");
         messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + invokeStringBuilder + "  executableElement:" + executableElement);
-        methodBuilder.beginControlFlow("for($T iEvent : iEvents)", eventClass);
+        methodBuilder.beginControlFlow("for(final $T iEvent : iEvents)", eventClass);
         methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
         methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode()");
         methodBuilder.beginControlFlow("if($T.isSyncInvoke(isPostMainThread, receiveThreadMode))", TypeUtil.Util);
         methodBuilder.addStatement(invokeStringBuilder.toString());
         methodBuilder.nextControlFlow("else");
-        methodBuilder.addStatement("final $T post_iEvent = iEvent", eventClass);
-        for (VariableElement typeParameter : typeParameters) {
-            String p = typeParameter.getSimpleName().toString();
-            methodBuilder.addStatement("final $T $L = $L", TypeName.get(typeParameter.asType()), "post_" + p, p);
-        }
         methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
         methodBuilder.addCode("@Override\n");
         methodBuilder.beginControlFlow("public void run()");
-        methodBuilder.addStatement(invokeRunnableStringBuilder.toString());
+        methodBuilder.addStatement(invokeStringBuilder.toString());
         methodBuilder.endControlFlow();
         methodBuilder.endControlFlow("");
 
