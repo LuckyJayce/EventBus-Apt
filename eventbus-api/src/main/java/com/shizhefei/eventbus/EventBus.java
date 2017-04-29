@@ -7,7 +7,7 @@ import java.util.WeakHashMap;
 public class EventBus {
     private static final EventHandler defaultEventHandler = new EventHandler();
 
-    private static final WeakHashMap<Activity, IEventHandler> eventHandlerMap = new WeakHashMap<Activity, IEventHandler>();
+    private static final WeakHashMap<Activity, EventHandler> eventHandlerMap = new WeakHashMap<Activity, EventHandler>();
 
     public static void register(IEvent iEvent) {
         defaultEventHandler.register(iEvent);
@@ -25,8 +25,12 @@ public class EventBus {
         return defaultEventHandler.post(eventClass);
     }
 
+    static <IEVENT extends IEvent> EventProxy getEventProxy(Class<? extends EventProxy<IEVENT>> eventClass) {
+        return defaultEventHandler.getEventProxy(eventClass);
+    }
+
     public static synchronized IEventHandler withActivity(Activity activity) {
-        IEventHandler eventBusImp = eventHandlerMap.get(activity);
+        EventHandler eventBusImp = eventHandlerMap.get(activity);
         if (eventBusImp == null) {
             eventBusImp = new EventHandler();
             eventHandlerMap.put(activity, eventBusImp);

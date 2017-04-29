@@ -4,9 +4,9 @@ import java.util.Set;
 
 class EventProxyFactory {
 
-    public static <IEVENT extends IEvent> EventProxy<IEVENT> create(Class<? extends EventProxy<IEVENT>> eventProxyClass, boolean postMainThread, Set<IEVENT> registers) {
+    public static <EVENT extends IEvent> EventProxy<EVENT> create(Class<? extends EventProxy<EVENT>> eventProxyClass, boolean postMainThread, Set<EVENT> registers) {
         try {
-            EventProxy<IEVENT> eventProxy = eventProxyClass.newInstance();
+            EventProxy<EVENT> eventProxy = eventProxyClass.newInstance();
             eventProxy.setEvents(registers);
             eventProxy.setPostMainThread(postMainThread);
             return eventProxy;

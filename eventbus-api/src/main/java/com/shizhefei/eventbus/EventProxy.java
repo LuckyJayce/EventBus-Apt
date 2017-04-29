@@ -2,9 +2,9 @@ package com.shizhefei.eventbus;
 
 import java.util.Set;
 
-public class EventProxy<IEVENT extends IEvent> implements IEvent {
+public class EventProxy<EVENT extends IEvent> implements IEvent {
     protected boolean isPostMainThread;
-    protected Set<IEVENT> iEvents;
+    protected Set<EVENT> iEvents;
 
     void setPostMainThread(boolean postMainThread) {
         this.isPostMainThread = postMainThread;
@@ -14,7 +14,7 @@ public class EventProxy<IEVENT extends IEvent> implements IEvent {
         return isPostMainThread;
     }
 
-    void setEvents(Set<IEVENT> events) {
+    void setEvents(Set<EVENT> events) {
         this.iEvents = events;
     }
 }
