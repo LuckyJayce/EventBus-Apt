@@ -1,5 +1,6 @@
 package com.shizhefei.eventbus.events;
 
+import com.shizhefei.eventbus.IRemoteEvent;
 import com.shizhefei.eventbus.annotation.Event;
 import com.shizhefei.eventbus.IEvent;
 
@@ -8,6 +9,6 @@ import com.shizhefei.eventbus.IEvent;
  */
 
 @Event
-public interface IMessageEvent extends IEvent {
+public interface IMessageEvent extends IRemoteEvent {
     void onReceiverMessage(int messageId, String message);
 }

@@ -41,6 +41,7 @@ public class EventBusProcessor extends AbstractProcessor {
         super.init(processingEnvironment);
         this.processingEnvironment = processingEnvironment;
         messager = processingEnvironment.getMessager();
+        TypeUtil.init(processingEnvironment);
 
     }
 
@@ -58,7 +59,10 @@ public class EventBusProcessor extends AbstractProcessor {
                     List<? extends TypeMirror> interfaces = ((TypeElement) element).getInterfaces();
                     for (TypeMirror anInterface : interfaces) {
                         if (TypeUtil.ievent.equals(TypeName.get(anInterface))) {
-                            write(typeElement);
+                            write(false, typeElement);
+                            break;
+                        } else if (TypeUtil.iRemoteEvent.equals(TypeName.get(anInterface))) {
+                            write(true, typeElement);
                             break;
                         }
                     }
@@ -67,8 +71,8 @@ public class EventBusProcessor extends AbstractProcessor {
         }
     }
 
-    private void write(TypeElement typeElement) {
-        JavaFile javaFile = new EventProxyBuilder(messager).build(typeElement);
+    private void write(boolean isRemoteEvent, TypeElement typeElement) {
+        JavaFile javaFile = new EventProxyBuilder(messager).build(isRemoteEvent, typeElement);
         try {
             javaFile.writeTo(processingEnvironment.getFiler());
         } catch (IOException e) {

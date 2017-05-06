@@ -1,11 +1,15 @@
 package com.shizhefei.eventbus;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -14,7 +18,7 @@ import java.util.ArrayList;
 public class Util {
 
     @SuppressWarnings("unchecked")
-   public static ArrayList<Class<? extends IEvent>> getInterfaces(IEvent event) {
+    public static ArrayList<Class<? extends IEvent>> getInterfaces(IEvent event) {
         Class<?>[] interfaces = event.getClass().getInterfaces();
         ArrayList<Class<? extends IEvent>> eventClass = new ArrayList<>();
         for (Class<?> in : interfaces) {
@@ -75,5 +79,29 @@ public class Util {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             AsyncTask.THREAD_POOL_EXECUTOR.execute(runnable);
         }
+    }
+
+    public static void postRemote(Class<? extends EventProxy> eventProxyClass, String methodName, Class[] methodParamsType, Object[] objects) {
+//        EventRemoteData data = new EventRemoteData(eventProxyClass.getName(), methodName, methodParamsType, objects);
+    }
+
+    public static void postRemote(String processName, Bundle eventRemoteData) {
+        if (isProcessRunning(EventBus.staticContext, processName)) {
+
+        }
+    }
+
+    public static boolean isProcessRunning(Context context, String processName) {
+        boolean isRunning = false;
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> lists = am.getRunningAppProcesses();
+        for (ActivityManager.RunningAppProcessInfo info : lists) {
+            if (info.processName.equals(processName)) {
+                //Log.i("Service2进程", ""+info.processName);
+                isRunning = true;
+                break;
+            }
+        }
+        return isRunning;
     }
 }

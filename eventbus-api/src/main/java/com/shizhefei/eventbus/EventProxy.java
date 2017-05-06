@@ -1,10 +1,13 @@
 package com.shizhefei.eventbus;
 
+import android.os.Bundle;
+
 import java.util.Set;
 
-public class EventProxy<EVENT extends IEvent> implements IEvent {
+public abstract class EventProxy<EVENT extends IEvent> implements IEvent {
     protected boolean isPostMainThread;
     protected Set<EVENT> iEvents;
+    protected String processName;
 
     void setPostMainThread(boolean postMainThread) {
         this.isPostMainThread = postMainThread;
@@ -17,4 +20,10 @@ public class EventProxy<EVENT extends IEvent> implements IEvent {
     void setEvents(Set<EVENT> events) {
         this.iEvents = events;
     }
+
+    void setProcessName(String processName) {
+        this.processName = processName;
+    }
+
+    public void onRemoteEvent(Bundle eventRemoteData){}
 }

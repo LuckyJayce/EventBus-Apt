@@ -7,12 +7,12 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.processing.Messager;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
@@ -36,13 +36,14 @@ public class EventProxyBuilder {
         this.messager = messager;
     }
 
-    public JavaFile build(TypeElement typeElement) {
+    public JavaFile build(boolean isRemoteEvent, TypeElement typeElement) {
         PackageElement packageElement = (PackageElement) typeElement.getEnclosingElement();
         String eventProxyClassName = createEventProxyClassName(typeElement.getSimpleName());
         TypeName eventClass = TypeName.get(typeElement.asType());
         ParameterizedTypeName eventImpTypeName = ParameterizedTypeName.get(TypeUtil.EventProxy, eventClass);
-        TypeSpec eventImp = createEventImp(typeElement, eventProxyClassName, eventImpTypeName, eventClass);
-        JavaFile javaFile = JavaFile.builder(packageElement.getQualifiedName().toString(), eventImp).indent("\t").build();
+        String eventImpPackageName = packageElement.getQualifiedName().toString();
+        TypeSpec eventImp = createEventImp(isRemoteEvent, typeElement, eventImpPackageName, eventProxyClassName, eventImpTypeName, eventClass);
+        JavaFile javaFile = JavaFile.builder(eventImpPackageName, eventImp).indent("\t").build();
         return javaFile;
     }
 
@@ -57,17 +58,21 @@ public class EventProxyBuilder {
      *    }
      * }<pre/>
      */
-    private TypeSpec createEventImp(TypeElement typeElement, String eventImpName, ParameterizedTypeName eventImpTypeName, TypeName eventClass) {
-        TypeSpec.Builder eventImp = TypeSpec.classBuilder(eventImpName).addModifiers(PUBLIC);
+    private TypeSpec createEventImp(boolean isRemoteEvent, TypeElement typeElement, String eventImpPacakgeName, String eventProxyName, ParameterizedTypeName eventImpTypeName, TypeName eventClass) {
+        TypeSpec.Builder eventImp = TypeSpec.classBuilder(eventProxyName).addModifiers(PUBLIC);
         eventImp.addSuperinterface(eventClass);
         for (TypeParameterElement typeParameterElement : typeElement.getTypeParameters()) {
             eventImp.addTypeVariable(toTypeVariableName(typeParameterElement));
         }
         eventImp.superclass(eventImpTypeName);
-        for (Element element : typeElement.getEnclosedElements()) {
-            ExecutableElement executableElement = (ExecutableElement) element;
-            MethodSpec methodSpec = createEventImpMethod(eventClass, executableElement);
+        List<ExecutableElement> enclosedElements = (List<ExecutableElement>) typeElement.getEnclosedElements();
+        for (int i = 0; i < enclosedElements.size(); i++) {
+            ExecutableElement executableElement = enclosedElements.get(i);
+            MethodSpec methodSpec = createEventImpMethod(isRemoteEvent, i, eventImpPacakgeName, eventProxyName, eventClass, executableElement);
             eventImp.addMethod(methodSpec);
+        }
+        if (isRemoteEvent) {
+            eventImp.addMethod(createOnRemoteEventMethod(enclosedElements));
         }
         return eventImp.build();
     }
@@ -96,34 +101,38 @@ public class EventProxyBuilder {
         return s + "Proxy";
     }
 
-    //            @Override
-//            public void onReceiverMessage(int messageId, String message) {
-//                for (IMessageEvent iEvent : iEvents) {
-//                    Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
-//                    boolean isPostMainThread = isPostMainThread();
-//                    int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
-//                    if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
-//                        iEvent.onReceiverMessage(messageId, message);
-//                    } else {
-//                        final IMessageEvent post_iEvent = iEvent;
-//                        final int post_messageId = messageId;
-//                        final String post_message = message;
-//                        Runnable runnable = new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                post_iEvent.onReceiverMessage(post_messageId, post_message);
-//                            }
-//                        };
-//                        if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
-//                            Util.postMain(runnable);
-//                        } else {
-//                            Util.postThread(runnable);
+    //    @Override
+//    public void onReceiverMessage(final int messageId, final String message) {
+//        if (!TextUtils.isEmpty(processName)) {
+//            Bundle eventRemoteData = new Bundle();
+//            eventRemoteData.putString("eventProxyClassName", getClass().getName());
+//            eventRemoteData.putInt("methodIndex", 0);
+//            eventRemoteData.putInt("paramValue1", messageId);
+//            eventRemoteData.putString("paramValue2", message);
+//            Util.postRemote(processName, eventRemoteData);
+//        } else {
+//            for (final IMessageEvent iEvent : iEvents) {
+//                Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
+//                int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
+//                if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
+//                    iEvent.onReceiverMessage(messageId, message);
+//                } else {
+//                    Runnable runnable = new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            iEvent.onReceiverMessage(messageId, message);
 //                        }
+//                    };
+//                    if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
+//                        Util.postMain(runnable);
+//                    } else {
+//                        Util.postThread(runnable);
 //                    }
 //                }
 //            }
 //        }
-    private MethodSpec createEventImpMethod(TypeName eventClass, ExecutableElement executableElement) {
+//    }
+    private MethodSpec createEventImpMethod(boolean isRemoteEvent, int methodIndex, String eventImpPackageName, String eventProxyName, TypeName eventClass, ExecutableElement executableElement) {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(executableElement.getSimpleName().toString());
         methodBuilder.addAnnotation(Override.class);
         Set<Modifier> modifiers = new HashSet<>(executableElement.getModifiers());
@@ -150,6 +159,26 @@ public class EventProxyBuilder {
         }
         invokeStringBuilder.append(")");
         messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + invokeStringBuilder + "  executableElement:" + executableElement);
+        if (isRemoteEvent) {
+            methodBuilder.beginControlFlow("if(!$T.isEmpty(processName))", TypeUtil.TextUtils);
+            methodBuilder.addStatement("$T eventRemoteData = new $T()", TypeUtil.bundle, TypeUtil.bundle);
+            methodBuilder.addStatement("eventRemoteData.putString(\"eventProxyClassName\", getClass().getName())");
+            methodBuilder.addStatement("eventRemoteData.putInt(\"methodIndex\", $L)", methodIndex);
+            for (int i = 0; i < typeParameters.size(); i++) {
+                VariableElement variableElement = typeParameters.get(i);
+//                TypeName typeName = TypeName.get(variableElement.asType());
+                String putMethodName = TypeUtil.getBundlePutMethodName(variableElement.asType());
+                String paramsName = variableElement.getSimpleName().toString();
+                if (putMethodName == null) {
+                    methodBuilder.addStatement("//not support this type, only support java baseType,baseType's array,bundle,implements Parcelable,Parcelable[],implements Serializable");
+                }
+                methodBuilder.addStatement("eventRemoteData.$L(\"paramValue$L\", $L)", putMethodName, i, paramsName);
+            }
+            methodBuilder.addStatement("$T.postRemote(processName, eventRemoteData)", TypeUtil.Util);
+
+            methodBuilder.nextControlFlow("else");
+        }
+
         methodBuilder.beginControlFlow("for(final $T iEvent : iEvents)", eventClass);
         methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
         methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode()");
@@ -171,37 +200,145 @@ public class EventProxyBuilder {
 
         methodBuilder.endControlFlow();
         methodBuilder.endControlFlow();
+
+        if (isRemoteEvent) {
+            methodBuilder.endControlFlow();
+        }
+        return methodBuilder.build();
+    }
+
+    //    @Override
+//    public void onRemoteEvent(Bundle eventRemoteData) {
+//        int methodIndex = eventRemoteData.getInt("methodIndex");
+//        switch (methodIndex) {
+//            case 0:
+//                onReceiverMessage(eventRemoteData.getInt("paramValue1"), eventRemoteData.getString("paramValue2"));
+//                break;
+//            case 1:
+//                onReceiverMessage(eventRemoteData.getString("paramValue1"), eventRemoteData.getString("paramValue2"));
+//                break;
+//        }
+//    }
+    private MethodSpec createOnRemoteEventMethod(List<ExecutableElement> executableElements) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("onRemoteEvent");
+        methodBuilder.addParameter(TypeUtil.bundle, "data");
+        methodBuilder.addModifiers(Modifier.PUBLIC);
+        methodBuilder.addAnnotation(Override.class);
+        methodBuilder.addStatement("int methodIndex = data.getInt(\"methodIndex\")");
+        methodBuilder.beginControlFlow("switch (methodIndex)");
+        for (int i = 0; i < executableElements.size(); i++) {
+            ExecutableElement executableElement = executableElements.get(i);
+            methodBuilder.addCode("case $L:\n", i);
+            List<Object> args = new ArrayList<>();
+            StringBuilder invokeMethod = new StringBuilder("\t");
+            invokeMethod.append(executableElement.getSimpleName().toString());
+            invokeMethod.append("(");
+            List<? extends VariableElement> typeParameters = executableElement.getParameters();
+            for (int paramIndex = 0; paramIndex < typeParameters.size(); paramIndex++) {
+                VariableElement typeParameter = typeParameters.get(paramIndex);
+                TypeMirror typeMirror = typeParameter.asType();
+                String methodName = TypeUtil.getBundleGetMethodName(typeMirror);
+                if (TypeUtil.isNeedCast(typeMirror)) {
+                    invokeMethod.append("($T)data.$L(\"paramValue$L\")");
+                    if (paramIndex != typeParameters.size() - 1) {
+                        invokeMethod.append(", ");
+                    }
+                    args.add(TypeName.get(typeParameter.asType()));
+                    args.add(methodName);
+                    args.add(paramIndex);
+                } else {
+                    invokeMethod.append("data.$L(\"paramValue$L\")");
+                    if (paramIndex != typeParameters.size() - 1) {
+                        invokeMethod.append(", ");
+                    }
+                    args.add(methodName);
+                    args.add(paramIndex);
+                }
+            }
+            invokeMethod.append(")");
+            methodBuilder.addStatement(invokeMethod.toString(), args.toArray(new Object[args.size()]));
+            methodBuilder.addStatement("\tbreak");
+        }
+        methodBuilder.endControlFlow();
         return methodBuilder.build();
     }
 }
 
-//        public class AccountEventProxy extends EventHandler.EventProxy<IMessageEvent> implements IMessageEvent {
-//
-//            @Override
-//            public void onReceiverMessage(int messageId, String message) {
-//                for (IMessageEvent iEvent : iEvents) {
-//                    Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
-//                    boolean isPostMainThread = isPostMainThread();
-//                    int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
-//                    if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
-//                        iEvent.onReceiverMessage(messageId, message);
-//                    } else {
-//                        final IMessageEvent post_iEvent = iEvent;
-//                        final int post_messageId = messageId;
-//                        final String post_message = message;
-//                        Runnable runnable = new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                post_iEvent.onReceiverMessage(post_messageId, post_message);
-//                            }
-//                        };
-//                        if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
-//                            Util.postMain(runnable);
-//                        } else {
-//                            Util.postThread(runnable);
+//public class IMessageEventProxy extends EventProxy<IMessageEvent> implements IMessageEvent {
+//    @Override
+//    public void onReceiverMessage(final int messageId, final String message) {
+//        if (!TextUtils.isEmpty(processName)) {
+//            Bundle eventRemoteData = new Bundle();
+//            eventRemoteData.putString("eventProxyClassName", getClass().getName());
+//            eventRemoteData.putInt("methodIndex", 0);
+//            eventRemoteData.putInt("paramValue1", messageId);
+//            eventRemoteData.putString("paramValue2", message);
+//            Util.postRemote(processName, eventRemoteData);
+//        } else {
+//            for (final IMessageEvent iEvent : iEvents) {
+//                Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
+//                int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
+//                if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
+//                    iEvent.onReceiverMessage(messageId, message);
+//                } else {
+//                    Runnable runnable = new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            iEvent.onReceiverMessage(messageId, message);
 //                        }
+//                    };
+//                    if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
+//                        Util.postMain(runnable);
+//                    } else {
+//                        Util.postThread(runnable);
 //                    }
 //                }
 //            }
 //        }
 //    }
+//
+//    @Override
+//    public void onReceiverMessage(final String messageTitle, final String message) {
+//        if (!TextUtils.isEmpty(processName)) {
+//            Bundle eventRemoteData = new Bundle();
+//            eventRemoteData.putSerializable("eventProxyClassName", getClass());
+//            eventRemoteData.putInt("methodIndex", 1);
+//            eventRemoteData.putString("paramValue1", messageTitle);
+//            eventRemoteData.putString("paramValue2", message);
+//            Util.postRemote(processName, eventRemoteData);
+//        } else {
+//            for (final IMessageEvent iEvent : iEvents) {
+//                Subscribe subscribe = iEvent.getClass().getAnnotation(Subscribe.class);
+//                int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode();
+//                if (Util.isSyncInvoke(isPostMainThread, receiveThreadMode)) {
+//                    iEvent.onReceiverMessage(messageTitle, message);
+//                } else {
+//                    Runnable runnable = new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            iEvent.onReceiverMessage(messageTitle, message);
+//                        }
+//                    };
+//                    if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread)) {
+//                        Util.postMain(runnable);
+//                    } else {
+//                        Util.postThread(runnable);
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    @Override
+//    public void onRemoteEvent(Bundle eventRemoteData) {
+//        int methodIndex = eventRemoteData.getInt("methodIndex");
+//        switch (methodIndex) {
+//            case 0:
+//                onReceiverMessage(eventRemoteData.getInt("paramValue1"), eventRemoteData.getString("paramValue2"));
+//                break;
+//            case 1:
+//                onReceiverMessage(eventRemoteData.getString("paramValue1"), eventRemoteData.getString("paramValue2"));
+//                break;
+//        }
+//    }
+//}
