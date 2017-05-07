@@ -8,6 +8,7 @@ import android.os.RemoteException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 主进程的service，所有进程和主进程连接，其它进程互不连接
@@ -21,7 +22,7 @@ import java.util.Map;
  */
 public class EventBusService extends Service {
 
-    private Map<String, EventProcessExecutor> otherProcess = new HashMap<>();
+    private Map<String, EventProcessExecutor> otherProcess = new ConcurrentHashMap<>();
 
     //由AIDL文件生成的BookManager
     private final EventServiceExecutor.Stub eventRemote = new EventServiceExecutor.Stub() {
