@@ -8,7 +8,7 @@ import android.content.pm.ServiceInfo;
 import java.util.HashMap;
 import java.util.Map;
 
-public class EventProcessHandler implements IEventHandler {
+class EventProcessHandler implements IEventHandler {
     private Map<Class, Map<String, EventProxy>> eventProxyMap = new HashMap<>();
     private EventHandler eventHandler = new EventHandler();
     private boolean remoteEvent;
