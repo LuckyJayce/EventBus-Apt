@@ -18,41 +18,26 @@ class EventHandler implements IEventHandler {
 
     private final Map<IEvent, Set<EventProxyCollections>> registers = new HashMap<>();
 
-    synchronized <EVENT extends IEvent> EventProxy<EVENT> getEventProxy(Class<? extends EventProxy<EVENT>> eventProxyClass) {
-        return post(eventProxyClass, false);
+    synchronized <EVENT extends IEvent> EventProxy<EVENT> getPostMainEventProxy(Class<? extends EventProxy<EVENT>> eventProxyClass) {
+        return post(eventProxyClass, true);
     }
 
     @Override
-    public synchronized <EVENT extends IEvent> EVENT post(Class<? extends EventProxy<EVENT>> eventProxyClass) {
+    public <EVENT extends IEvent> EVENT post(Class<? extends EventProxy<EVENT>> eventProxyClass) {
         return (EVENT) post(eventProxyClass, false);
     }
 
     @Override
-    public synchronized <EVENT extends IEvent> EVENT postMain(Class<? extends EventProxy<EVENT>> eventProxyClass) {
+    public <EVENT extends IEvent> EVENT postMain(Class<? extends EventProxy<EVENT>> eventProxyClass) {
         return (EVENT) post(eventProxyClass, true);
     }
 
-    public synchronized <EVENT extends IEvent> EVENT postRemote(Class<? extends EventProxy<EVENT>> eventProxyClass, String processName) {
-        Class<EVENT> eventClass = getEventClass(eventProxyClass);
-        EventProxyCollections<EVENT> eventProxyCollections = getEventImpCollections(eventClass);
-        if (eventProxyCollections.remoteEventProxys == null) {
-            eventProxyCollections.remoteEventProxys = new HashMap<>(2);
-        }
-        Map<String, EventProxy<EVENT>> remoteEventProxys = eventProxyCollections.remoteEventProxys;
-        EventProxy<EVENT> eventProxy = remoteEventProxys.get(processName);
-        if (eventProxy == null) {
-            eventProxy = EventProxyFactory.create(eventProxyClass, false, processName, eventProxyCollections.iEvents);
-            remoteEventProxys.put(processName, eventProxy);
-        }
-        return eventClass.cast(eventProxy);
-    }
-
-    public synchronized <EVENT extends IEvent> EventProxy<EVENT> post(Class<? extends EventProxy<EVENT>> eventProxyClass, boolean postMainThread) {
-        Class<EVENT> eventClass = getEventClass(eventProxyClass);
+    private synchronized <EVENT extends IEvent> EventProxy<EVENT> post(Class<? extends EventProxy<EVENT>> eventProxyClass, boolean postMainThread) {
+        Class<EVENT> eventClass = Util.getEventClass(eventProxyClass);
         EventProxyCollections<EVENT> eventProxyCollections = getEventImpCollections(eventClass);
         EventProxy<EVENT> eventProxy = postMainThread ? eventProxyCollections.mainEventProxy : eventProxyCollections.eventProxy;
         if (eventProxy == null) {
-            eventProxy = EventProxyFactory.create(eventProxyClass, postMainThread, null, eventProxyCollections.iEvents);
+            eventProxy = EventProxyFactory.createLocal(eventProxyClass, postMainThread, eventProxyCollections.iEvents);
             if (postMainThread) {
                 eventProxyCollections.mainEventProxy = eventProxy;
             } else {
@@ -60,11 +45,6 @@ class EventHandler implements IEventHandler {
             }
         }
         return eventProxy;
-    }
-
-    public <EVENT extends IEvent> Class<EVENT> getEventClass(Class<? extends EventProxy<EVENT>> eventClass) {
-        Class<?>[] classes = eventClass.getInterfaces();
-        return (Class<EVENT>) classes[0];
     }
 
     private synchronized <EVENT extends IEvent> EventProxyCollections<EVENT> getEventImpCollections(Class<EVENT> eventClass) {
@@ -108,11 +88,9 @@ class EventHandler implements IEventHandler {
         return registers.containsKey(subscriber);
     }
 
-
     private static class EventProxyCollections<EVENT extends IEvent> {
         EventProxy<EVENT> eventProxy;
         EventProxy<EVENT> mainEventProxy;
-        Map<String, EventProxy<EVENT>> remoteEventProxys;
 
         Set<EVENT> iEvents = Collections.newSetFromMap(new ConcurrentHashMap<EVENT, Boolean>());
 

@@ -7,6 +7,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:name="com.shizhefei.eventbus.AppContext"
         android:theme="@style/AppTheme">
         <activity android:name="com.shizhefei.eventbus.MainActivity">
             <intent-filter>
@@ -15,7 +16,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.shizhefei.eventbus.SecondActivity"></activity>
+        <activity android:name="com.shizhefei.eventbus.SecondActivity" android:process=":aaa"/>
+        <service android:name="com.shizhefei.eventbus.EventBusService"/>
     </application>
 
 </manifest>

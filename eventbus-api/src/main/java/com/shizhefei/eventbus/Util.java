@@ -2,8 +2,8 @@ package com.shizhefei.eventbus;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -11,11 +11,15 @@ import android.os.Looper;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.content.Context.ACTIVITY_SERVICE;
+
 
 /**
  * Created by LuckyJayce on 2016/7/23.
  */
 public class Util {
+
+    private static EventBusServiceConnection serviceConnection = new EventBusServiceConnection();
 
     @SuppressWarnings("unchecked")
     public static ArrayList<Class<? extends IEvent>> getInterfaces(IEvent event) {
@@ -76,24 +80,24 @@ public class Util {
     }
 
     public static void postThread(Runnable runnable) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            AsyncTask.THREAD_POOL_EXECUTOR.execute(runnable);
-        }
-    }
-
-    public static void postRemote(Class<? extends EventProxy> eventProxyClass, String methodName, Class[] methodParamsType, Object[] objects) {
-//        EventRemoteData data = new EventRemoteData(eventProxyClass.getName(), methodName, methodParamsType, objects);
+        AsyncTask.THREAD_POOL_EXECUTOR.execute(runnable);
     }
 
     public static void postRemote(String processName, Bundle eventRemoteData) {
-        if (isProcessRunning(EventBus.staticContext, processName)) {
+        serviceConnection.postEvent(processName, eventRemoteData);
+    }
 
-        }
+    static void bindService() {
+        serviceConnection.bindService();
+    }
+
+    static void unBindService() {
+        serviceConnection.unBindService();
     }
 
     public static boolean isProcessRunning(Context context, String processName) {
         boolean isRunning = false;
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        ActivityManager am = (ActivityManager) context.getSystemService(ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> lists = am.getRunningAppProcesses();
         for (ActivityManager.RunningAppProcessInfo info : lists) {
             if (info.processName.equals(processName)) {
@@ -103,5 +107,10 @@ public class Util {
             }
         }
         return isRunning;
+    }
+
+    public static <EVENT extends IEvent> Class<EVENT> getEventClass(Class<? extends EventProxy<EVENT>> eventClass) {
+        Class<?>[] classes = eventClass.getInterfaces();
+        return (Class<EVENT>) classes[0];
     }
 }
