@@ -1,6 +1,6 @@
 def infoFile = new File(rootProject.projectDir, "../publish_info.properties");
 
-def versionName = '1.0.1'
+def versionName = '1.1.0-alpha1'
 
 //执行 ./gradlew uploadArchives 进行发布
 if (infoFile.exists()) {
