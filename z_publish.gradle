@@ -1,123 +1,123 @@
-//def infoFile = new File(rootProject.projectDir, "../publish_info.properties");
-//
-//def versionName = '1.0.1'
-//
-////执行 ./gradlew uploadArchives 进行发布
-//if (infoFile.exists()) {
-//
-//    apply plugin: 'maven'
-//    apply plugin: 'signing'
-//
-//    Properties properties = new Properties();
-//    properties.load(new FileInputStream(infoFile));
-//    def url = properties.getProperty("url");
-//    def password = properties.getProperty("password");
-//    def userName = properties.getProperty("userName");
-//    def groupId = properties.getProperty("groupId");
-//
-//    def isReleaseBuild = true
-//
-//    def getReleaseRepositoryUrl = url
-//
-//    def getSnapshotRepositoryUrl = url
-//
-//    def getRepositoryUsername =  userName
-//
-//    def getRepositoryPassword =  password
-//
-//    version = versionName
-//    group = groupId
-//
-//    afterEvaluate { project ->
-//        uploadArchives {
-//            repositories {
-//                mavenDeployer {
-//                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-//
-//                    pom.groupId = groupId
-//                    pom.artifactId = POM_ARTIFACT_ID
-//                    pom.version = versionName
-//
-//                    repository(url: getReleaseRepositoryUrl) {
-//                        authentication(userName: getRepositoryUsername, password: getRepositoryPassword)
-//                    }
-//                    snapshotRepository(url: getSnapshotRepositoryUrl) {
-//                        authentication(userName: getRepositoryUsername, password: getRepositoryPassword)
-//                    }
-//                }
-//            }
-//        }
-//
-//        signing {
-//            required { isReleaseBuild && gradle.taskGraph.hasTask("uploadArchives") }
-//            sign configurations.archives
-//        }
-//
-//        if (project.getPlugins().hasPlugin('com.android.application') ||
-//                project.getPlugins().hasPlugin('com.android.library')) {
-//            task install(type: Upload, dependsOn: assemble) {
-//                repositories.mavenInstaller {
-//                    configuration = configurations.archives
-//
-//                    pom.groupId = groupId
-//                    pom.artifactId = POM_ARTIFACT_ID
-//                    pom.version = versionName
-//                }
-//            }
-//
-//            task androidJavadocs(type: Javadoc) {
-//                source = android.sourceSets.main.java.source
-//                classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-//            }
-//
-//            task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-//                classifier = 'javadoc'
-//                from androidJavadocs.destinationDir
-//            }
-//
-//            task androidSourcesJar(type: Jar) {
-//                classifier = 'sources'
-//                from android.sourceSets.main.java.source
-//            }
-//        } else {
-//            install {
-//                repositories.mavenInstaller {
-//                    pom.groupId = groupId
-//                    pom.artifactId = POM_ARTIFACT_ID
-//                    pom.version = versionName
-//                }
-//            }
-//
-//            task sourcesJar(type: Jar, dependsOn:classes) {
-//                classifier = 'sources'
-//                from sourceSets.main.allSource
-//            }
-//
-//            task javadocJar(type: Jar, dependsOn:javadoc) {
-//                classifier = 'javadoc'
-//                from javadoc.destinationDir
-//            }
-//        }
-//
-//        if (JavaVersion.current().isJava8Compatible()) {
-//            allprojects {
-//                tasks.withType(Javadoc) {
-//                    options.addStringOption('Xdoclint:none', '-quiet')
-//                }
-//            }
-//        }
-//
-//        artifacts {
-//            if (project.getPlugins().hasPlugin('com.android.application') ||
-//                    project.getPlugins().hasPlugin('com.android.library')) {
-//                archives androidSourcesJar
-//                archives androidJavadocsJar
-//            } else {
-//                archives sourcesJar
-//                archives javadocJar
-//            }
-//        }
-//    }
-//} else {
-//    println(infoFile + "文件不存在，该文件用于发布maven仓库的账号信息")
-//}
+def infoFile = new File(rootProject.projectDir, "../publish_info.properties");
+
+def versionName = '1.0.1'
+
+//执行 ./gradlew uploadArchives 进行发布
+if (infoFile.exists()) {
+
+    apply plugin: 'maven'
+    apply plugin: 'signing'
+
+    Properties properties = new Properties();
+    properties.load(new FileInputStream(infoFile));
+    def url = properties.getProperty("url");
+    def password = properties.getProperty("password");
+    def userName = properties.getProperty("userName");
+    def groupId = properties.getProperty("groupId");
+
+    def isReleaseBuild = true
+
+    def getReleaseRepositoryUrl = url
+
+    def getSnapshotRepositoryUrl = url
+
+    def getRepositoryUsername =  userName
+
+    def getRepositoryPassword =  password
+
+    version = versionName
+    group = groupId
+
+    afterEvaluate { project ->
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                    pom.groupId = groupId
+                    pom.artifactId = POM_ARTIFACT_ID
+                    pom.version = versionName
+
+                    repository(url: getReleaseRepositoryUrl) {
+                        authentication(userName: getRepositoryUsername, password: getRepositoryPassword)
+                    }
+                    snapshotRepository(url: getSnapshotRepositoryUrl) {
+                        authentication(userName: getRepositoryUsername, password: getRepositoryPassword)
+                    }
+                }
+            }
+        }
+
+        signing {
+            required { isReleaseBuild && gradle.taskGraph.hasTask("uploadArchives") }
+            sign configurations.archives
+        }
+
+        if (project.getPlugins().hasPlugin('com.android.application') ||
+                project.getPlugins().hasPlugin('com.android.library')) {
+            task install(type: Upload, dependsOn: assemble) {
+                repositories.mavenInstaller {
+                    configuration = configurations.archives
+
+                    pom.groupId = groupId
+                    pom.artifactId = POM_ARTIFACT_ID
+                    pom.version = versionName
+                }
+            }
+
+            task androidJavadocs(type: Javadoc) {
+                source = android.sourceSets.main.java.source
+                classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+            }
+
+            task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+                classifier = 'javadoc'
+                from androidJavadocs.destinationDir
+            }
+
+            task androidSourcesJar(type: Jar) {
+                classifier = 'sources'
+                from android.sourceSets.main.java.source
+            }
+        } else {
+            install {
+                repositories.mavenInstaller {
+                    pom.groupId = groupId
+                    pom.artifactId = POM_ARTIFACT_ID
+                    pom.version = versionName
+                }
+            }
+
+            task sourcesJar(type: Jar, dependsOn:classes) {
+                classifier = 'sources'
+                from sourceSets.main.allSource
+            }
+
+            task javadocJar(type: Jar, dependsOn:javadoc) {
+                classifier = 'javadoc'
+                from javadoc.destinationDir
+            }
+        }
+
+        if (JavaVersion.current().isJava8Compatible()) {
+            allprojects {
+                tasks.withType(Javadoc) {
+                    options.addStringOption('Xdoclint:none', '-quiet')
+                }
+            }
+        }
+
+        artifacts {
+            if (project.getPlugins().hasPlugin('com.android.application') ||
+                    project.getPlugins().hasPlugin('com.android.library')) {
+                archives androidSourcesJar
+                archives androidJavadocsJar
+            } else {
+                archives sourcesJar
+                archives javadocJar
+            }
+        }
+    }
+} else {
+    println(infoFile + "文件不存在，该文件用于发布maven仓库的账号信息")
+}

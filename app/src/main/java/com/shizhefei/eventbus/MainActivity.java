@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity implements IMessageEvent {
 
         int pid = android.os.Process.myPid();
         String processName = null;
-        ActivityManager activityManager = (ActivityManager) EventBus.staticContext.getSystemService(ACTIVITY_SERVICE);
+        ActivityManager activityManager = (ActivityManager) getApplicationContext().getSystemService(ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> list = activityManager.getRunningAppProcesses();
         for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : list) {
             if (runningAppProcessInfo.pid == pid) {

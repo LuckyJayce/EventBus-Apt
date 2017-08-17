@@ -27,13 +27,14 @@ public class SecondActivity extends AppCompatActivity {
         findViewById(R.id.sendButton2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //TODO 支持数组的process
-                EventBus.postRemote(IMessageEventProxy.class, getPackageName()).onReceiverMessage(1, "测试远程事件");
+                //发布事件到主进程
+                String processName = getPackageName();
+                EventBus.postRemote(IMessageEventProxy.class, processName).onReceiverMessage(1, "测试远程事件");
             }
         });
         Log.d("pppp", "second: Process.myPid():" + Process.myPid());
         String processName = null;
-        ActivityManager activityManager = (ActivityManager) EventBus.staticContext.getSystemService(ACTIVITY_SERVICE);
+        ActivityManager activityManager = (ActivityManager) getApplicationContext().getSystemService(ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> list = activityManager.getRunningAppProcesses();
         for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : list) {
             if (runningAppProcessInfo.pid ==  Process.myPid()) {
