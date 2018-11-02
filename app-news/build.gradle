@@ -27,7 +27,7 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     compile project(':eventbus-api')
-    compile project(':evenbus-annotation')
+    compile project(':eventbus-annotation')
     annotationProcessor project(':eventbus-compiler')
     compile 'com.android.support:appcompat-v7:26.+'
     testCompile 'junit:junit:4.12'

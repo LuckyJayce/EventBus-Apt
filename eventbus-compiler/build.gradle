@@ -5,7 +5,7 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.google.auto.service:auto-service:1.0-rc2'
     compile 'com.squareup:javapoet:1.8.0'
-    compile project(':evenbus-annotation')
+    compile project(':eventbus-annotation')
 }
 
 allprojects {
@@ -28,6 +28,6 @@ publish {
     groupId = 'com.shizhefei'//jcenter上的路径
     artifactId = 'eventbus-compiler'//项目名称
     publishVersion = rootProject.ext.VERSION_NAME//版本号
-    desc = 'Task类库 下的测试用例类库'//描述
-    website = 'https://github.com/LuckyJayce/Task'//网站
+    desc = 'eventbus compiler'//描述
+    website = 'https://github.com/LuckyJayce/EventBus-Apt'//网站
 }
