@@ -1,13 +1,12 @@
 apply plugin: 'com.android.library'
-apply from: rootProject.file('z_publish.gradle')
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.0"
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
 
     defaultConfig {
-        minSdkVersion 11
-        targetSdkVersion 24
+        minSdkVersion 14
+        targetSdkVersion 28
         versionCode 8
         versionName "1.0.7"
     }
