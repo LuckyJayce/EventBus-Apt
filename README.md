@@ -9,6 +9,21 @@ greenrobot的EventBus是通过 onEvent的方式，然后定义Event实体类
 
 而本项目的代码是通过用户定义IEvent接口，然后apt实现接口负责分发调用注册者的方法，使用者通过这个实现类去调用接口的方法，直接通知注册者
 
+# Gradle导入
+
+```
+//eventbus 核心api
+compile 'com.shizhefei:eventbus-api:1.1.0'
+//eventbus 注解
+compile 'com.shizhefei:eventbus-annotation:1.1.0'
+```
+
+在定义Event接口的Module添加，以便于生成Event接口的代理
+
+```
+annotationProcessor 'com.shizhefei:eventbus-compiler:1.1.0'
+```
+
 # 在Application初始化
 
 		//是否支持跨进程的事件，false表示不支持跨进程
@@ -107,7 +122,7 @@ greenrobot的EventBus是通过 onEvent的方式，然后定义Event实体类
 
 	EventBus.postRemote(IMessageEvent.class).onReceiveMessage("Message");
 
-#License
+# License
 
 	Copyright 2017 LuckyJayce
 	
