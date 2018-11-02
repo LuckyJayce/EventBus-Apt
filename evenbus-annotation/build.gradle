@@ -1,3 +1,4 @@
+apply plugin: 'com.novoda.bintray-release'
 apply plugin: 'java'
 
 dependencies {
@@ -6,3 +7,15 @@ dependencies {
 
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
+
+
+//添加
+publish {
+    repoName = 'maven'
+    userOrg = 'luckyjayce'//bintray.com用户名
+    groupId = 'com.shizhefei'//jcenter上的路径
+    artifactId = 'evenbus-annotation'//项目名称
+    publishVersion = rootProject.ext.VERSION_NAME//版本号
+    desc = 'Task类库 下的测试用例类库'//描述
+    website = 'https://github.com/LuckyJayce/Task'//网站
+}

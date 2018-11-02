@@ -1,26 +1,18 @@
+apply plugin: 'com.novoda.bintray-release'
 apply plugin: 'com.android.library'
-
-android {
-    compileSdkVersion 28
-    buildToolsVersion '28.0.3'
-
-    defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 28
-        versionCode 8
-        versionName "1.0.7"
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-    lintOptions {
-        abortOnError false
-    }
-}
+apply from: rootProject.file("buildsystem/library.gradle")
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+}
+
+//添加
+publish {
+    repoName = 'maven'
+    userOrg = 'luckyjayce'//bintray.com用户名
+    groupId = 'com.shizhefei'//jcenter上的路径
+    artifactId = 'eventbus-api'//项目名称
+    publishVersion = rootProject.ext.VERSION_NAME//版本号
+    desc = 'Task类库 下的测试用例类库'//描述
+    website = 'https://github.com/LuckyJayce/Task'//网站
 }
