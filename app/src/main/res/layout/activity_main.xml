@@ -23,7 +23,7 @@
         android:layout_weight="1" />
 
     <Button
-        android:text="Button"
+        android:text="其他进程页面"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/button2" />
