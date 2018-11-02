@@ -1,7 +1,7 @@
 # EventBus
 事件总线
 
-#简介
+# 简介
 事件总线的思路源于 https://github.com/greenrobot/EventBus  
 不过代码和实现方式完全不同于EventBus.
 
@@ -9,41 +9,41 @@ greenrobot的EventBus是通过 onEvent的方式，然后定义Event实体类
 
 而本项目的代码是通过用户定义IEvent接口，然后apt实现接口负责分发调用注册者的方法，使用者通过这个实现类去调用接口的方法，直接通知注册者
 
-#在Application初始化
+# 在Application初始化
 
 		//是否支持跨进程的事件，false表示不支持跨进程
 		EventBus.init(this, false);
 
-##进程内 EventBus in 3 steps （IEvent）
+## 进程内 EventBus in 3 steps （IEvent）
 
 **1.定义事件接口，直接继承于IEvent，添加 @Event 注解（用于apt自动生成事件分发实现类**
 
 	@Event
-    public interface IMessageEvent extends IEvent{
+	public interface IMessageEvent extends IEvent{
 	    	void onReceiveMessage(String message);
 	 }
 
 **2.注册监听，实现事件接口**
 
 	 public MainActivity extends Activity implements IMessageEvent{
-
+	
 	    @Override
 	    protected void onCreate(Bundle savedInstanceState) {
 	        super.onCreate(savedInstanceState);
 			//注册监听
 			EventBus.register(this);
 		}
-
+	
 	    @Override
 	    protected void onDestroy() {
 	        super.onDestroy();
 			//注销监听
 			EventBus.unregister(this);
 	    }
-
+	
 		@Override
 		public void onReceiveMessage(String message){
-
+	
 	    }
 	 }
 
@@ -74,31 +74,31 @@ greenrobot的EventBus是通过 onEvent的方式，然后定义Event实体类
 >跨进程的参数支持基本类型和实现Serializable,实现Parcelable的类型
 
 	@Event
-    public interface IMessageEvent extends IRemoteEvent{
+	public interface IMessageEvent extends IRemoteEvent{
 	    	void onReceiveMessage(String message);
 	 }
 
 **2.注册监听，实现事件接口**
 
 	 public MainActivity extends Activity implements IMessageEvent{
-
+	
 	    @Override
 	    protected void onCreate(Bundle savedInstanceState) {
 	        super.onCreate(savedInstanceState);
 			//注册监听
 			EventBus.register(this);
 		}
-
+	
 	    @Override
 	    protected void onDestroy() {
 	        super.onDestroy();
 			//注销监听
 			EventBus.unregister(this);
 	    }
-
+	
 		@Override
 		public void onReceiveMessage(String message){
-
+	
 	    }
 	 }
 
