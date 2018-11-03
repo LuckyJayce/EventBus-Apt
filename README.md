@@ -73,7 +73,7 @@ annotationProcessor 'com.shizhefei:eventbus-compiler:1.1.0'
 
       EventBus.post(IMessageEvent.class).onReceiveMessage("Message");
 
-##多进程 EventBus in 3 steps （IRemoteEvent）
+## 多进程 EventBus in 3 steps （IRemoteEvent）
 **准备：**
 >**Application初始化**
 >
