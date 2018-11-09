@@ -5,18 +5,32 @@ import android.content.Context;
 
 import java.util.WeakHashMap;
 
+/**
+ * Created by LuckyJayce
+ */
 public class EventBus {
 
     private static EventProcessHandler defaultEventHandler;
     private static WeakHashMap<Activity, EventHandler> eventHandlerMap;
+    private static EventHandler emptyEventHandler = new EventHandler();
     private static Context staticContext;
     private static boolean staticHasRemoteEvent;
+    volatile static IEventProxyFactory staticEventProxyFactory;
 
     public static void init(Context context, boolean hasRemoteEvent) {
         staticContext = context.getApplicationContext();
         staticHasRemoteEvent = hasRemoteEvent;
         eventHandlerMap = new WeakHashMap<>();
         defaultEventHandler = new EventProcessHandler(hasRemoteEvent);
+        staticEventProxyFactory = new EventProxyAptFactory();
+    }
+
+    public static void setEventProxyFactory(IEventProxyFactory eventProxyFactory){
+        staticEventProxyFactory = eventProxyFactory;
+    }
+
+    static IEventProxyFactory getEventProxyFactory(){
+        return staticEventProxyFactory;
     }
 
     static Context getContext() {
@@ -26,6 +40,7 @@ public class EventBus {
     static boolean isHasRemoteEvent() {
         return staticHasRemoteEvent;
     }
+
     public static void register(IEvent iEvent) {
         checkInit();
         defaultEventHandler.register(iEvent);
@@ -36,28 +51,34 @@ public class EventBus {
         defaultEventHandler.unregister(iEvent);
     }
 
-    public static <EVENT extends IEvent> EVENT postMain(Class<? extends EventProxy<EVENT>> eventClass) {
+    public static <EVENT extends IEvent> EVENT postMain(Class<EVENT> eventInterface) {
         checkInit();
-        return defaultEventHandler.postMain(eventClass);
+        return defaultEventHandler.postMain(eventInterface);
     }
 
-    public static <EVENT extends IEvent> EVENT post(Class<? extends EventProxy<EVENT>> eventClass) {
+    public static <EVENT extends IEvent> EVENT post(Class<EVENT> eventInterface) {
         checkInit();
-        return defaultEventHandler.post(eventClass);
+        return defaultEventHandler.post(eventInterface);
     }
 
-    public static <EVENT extends IRemoteEvent> EVENT postRemote(Class<? extends EventProxy<EVENT>> eventClass, String processName) {
+    public static <EVENT extends IRemoteEvent> EVENT postRemote(Class<EVENT> eventInterface, String processName) {
         checkInit();
-        return defaultEventHandler.postRemote(eventClass, processName);
+        return defaultEventHandler.postRemote(eventInterface, processName);
     }
 
-    static EventProxy getPostMainEventProxy(Class<? extends EventProxy> eventClass) {
-        checkInit();
-        return defaultEventHandler.getPostMainEventProxy(eventClass);
-    }
+//    public static <EVENT extends IEvent> EVENT postMainInActivity(Activity activity, Class<EVENT> eventInterface) {
+//        return withActivity(activity).postMain(eventInterface);
+//    }
+//
+//    public static <EVENT extends IEvent> EVENT postInActivity(Activity activity, Class<EVENT> eventInterface) {
+//        return withActivity(activity).postMain(eventInterface);
+//    }
 
     public static synchronized IEventHandler withActivity(Activity activity) {
         checkInit();
+        if (activity == null) {
+            return emptyEventHandler;
+        }
         EventHandler eventBusImp = eventHandlerMap.get(activity);
         if (eventBusImp == null) {
             eventBusImp = new EventHandler();

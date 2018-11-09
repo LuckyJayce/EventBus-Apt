@@ -1,5 +1,6 @@
 package com.shizhefei.eventbus.plugin;
 
+import com.shizhefei.eventbus.EventProxyNameBuilder;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -13,9 +14,9 @@ import java.util.List;
 import java.util.Set;
 
 import javax.annotation.processing.Messager;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
@@ -37,15 +38,25 @@ public class EventProxyBuilder {
     }
 
     public JavaFile build(boolean isRemoteEvent, TypeElement typeElement) {
-        PackageElement packageElement = (PackageElement) typeElement.getEnclosingElement();
-        String eventProxyClassName = createEventProxyClassName(typeElement.getSimpleName());
+        PackageElement packageElement = getPackage(typeElement);
+
+        String eventImpPackageName = packageElement.getQualifiedName().toString();
+        String proxySimpleClassName = EventProxyNameBuilder.getProxySimpleClassName(eventImpPackageName, typeElement.getQualifiedName().toString());
+
         TypeName eventClass = TypeName.get(typeElement.asType());
         ParameterizedTypeName eventImpTypeName = ParameterizedTypeName.get(TypeUtil.EventProxy, eventClass);
-        String eventImpPackageName = packageElement.getQualifiedName().toString();
-        TypeSpec eventImp = createEventImp(isRemoteEvent, typeElement, eventImpPackageName, eventProxyClassName, eventImpTypeName, eventClass);
+        TypeSpec eventImp = createEventImp(isRemoteEvent, typeElement, eventImpPackageName, proxySimpleClassName, eventImpTypeName, eventClass);
         JavaFile javaFile = JavaFile.builder(eventImpPackageName, eventImp).indent("\t").build();
         return javaFile;
     }
+
+    private PackageElement getPackage(Element cla) {
+        if (cla instanceof PackageElement) {
+            return (PackageElement) cla;
+        }
+        return getPackage(cla.getEnclosingElement());
+    }
+
 
     /**
      * <pre>
@@ -58,21 +69,27 @@ public class EventProxyBuilder {
      *    }
      * }<pre/>
      */
-    private TypeSpec createEventImp(boolean isRemoteEvent, TypeElement typeElement, String eventImpPacakgeName, String eventProxyName, ParameterizedTypeName eventImpTypeName, TypeName eventClass) {
-        TypeSpec.Builder eventImp = TypeSpec.classBuilder(eventProxyName).addModifiers(PUBLIC);
+    private TypeSpec createEventImp(boolean isRemoteEvent, TypeElement typeElement, String eventImpPackageName, String proxySimpleClassName, ParameterizedTypeName eventImpTypeName, TypeName eventClass) {
+        TypeSpec.Builder eventImp = TypeSpec.classBuilder(proxySimpleClassName).addModifiers(PUBLIC);
         eventImp.addSuperinterface(eventClass);
         for (TypeParameterElement typeParameterElement : typeElement.getTypeParameters()) {
             eventImp.addTypeVariable(toTypeVariableName(typeParameterElement));
         }
         eventImp.superclass(eventImpTypeName);
-        List<ExecutableElement> enclosedElements = (List<ExecutableElement>) typeElement.getEnclosedElements();
+        List<ExecutableElement> executableElementList = new ArrayList<>();
+        List<? extends Element> enclosedElements = typeElement.getEnclosedElements();
         for (int i = 0; i < enclosedElements.size(); i++) {
-            ExecutableElement executableElement = enclosedElements.get(i);
-            MethodSpec methodSpec = createEventImpMethod(isRemoteEvent, i, eventImpPacakgeName, eventProxyName, eventClass, executableElement);
-            eventImp.addMethod(methodSpec);
+            Element element = enclosedElements.get(i);
+            if (element instanceof ExecutableElement) {
+                ExecutableElement executableElement = (ExecutableElement) element;
+                MethodSpec methodSpec = createEventImpMethod(isRemoteEvent, i, eventImpPackageName, proxySimpleClassName, eventClass, executableElement);
+                eventImp.addMethod(methodSpec);
+
+                executableElementList.add(executableElement);
+            }
         }
         if (isRemoteEvent) {
-            eventImp.addMethod(createOnRemoteEventMethod(enclosedElements));
+            eventImp.addMethod(createOnRemoteEventMethod(executableElementList));
         }
         return eventImp.build();
     }
@@ -92,15 +109,123 @@ public class EventProxyBuilder {
         return TypeVariableName.get(typeParameterElement.getSimpleName().toString(), bounds);
     }
 
-    /**
-     * @param name
-     * @return
-     */
-    private String createEventProxyClassName(Name name) {
-        String s = name.toString();
-        return s + "Proxy";
+    //    @Override
+//    public void onReceiverMessage(final int messageId, final String message) {
+//        if (!TextUtils.isEmpty(processName)) {
+//            Bundle eventRemoteData = new Bundle();
+//            eventRemoteData.putString("eventProxyClassName", getClass().getName());
+//            eventRemoteData.putInt("methodIndex", 0);
+//            eventRemoteData.putInt("paramValue1", messageId);
+//            eventRemoteData.putString("paramValue2", message);
+//            Util.postRemote(processName, eventRemoteData);
+//        } else {
+//            for (final Register<IMessageEvent> register : registers.values()) {
+//                Runnable runnable = new Runnable() {
+//                    @Override
+//                    public void run() {
+//                       if (register.isRegister()) {
+//                           register.getEvent().onReceiveMessage(message);
+//                       }
+//                    }
+//                };
+//                Util.post(register.getEvent(), isPostMainThread, runnable);
+//            }
+//        }
+//    }
+    private MethodSpec createEventImpMethod(boolean isRemoteEvent, int methodIndex, String eventImpPackageName, String eventProxyName, TypeName eventClass, ExecutableElement executableElement) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(executableElement.getSimpleName().toString());
+        methodBuilder.addAnnotation(Override.class);
+        Set<Modifier> modifiers = new HashSet<>(executableElement.getModifiers());
+        modifiers.remove(Modifier.ABSTRACT);
+        methodBuilder.addModifiers(modifiers);
+        methodBuilder.returns(TypeName.get(executableElement.getReturnType()));
+        for (TypeMirror typeMirror : executableElement.getThrownTypes()) {
+            methodBuilder.addException(TypeName.get(typeMirror));
+        }
+        for (TypeParameterElement typeParameterElement : executableElement.getTypeParameters()) {
+            methodBuilder.addTypeVariable(toTypeVariableName(typeParameterElement));
+        }
+
+        List<? extends VariableElement> typeParameters = executableElement.getParameters();
+        StringBuilder invokeStringBuilder = new StringBuilder("register.getEvent().").append(executableElement.getSimpleName().toString()).append("(");
+        for (VariableElement typeParameter : typeParameters) {
+            String paramsName = typeParameter.getSimpleName().toString();
+            methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName, Modifier.FINAL);
+            invokeStringBuilder.append(paramsName).append(", ");
+        }
+        if (invokeStringBuilder.charAt(invokeStringBuilder.length() - 2) == ',' && invokeStringBuilder.charAt(invokeStringBuilder.length() - 1) == ' ') {
+            invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
+            invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
+        }
+        invokeStringBuilder.append(")");
+        messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + invokeStringBuilder + "  executableElement:" + executableElement);
+        if (isRemoteEvent) {
+            String eventClassName = EventProxyNameBuilder.getRemoteClassParamName();
+            methodBuilder.beginControlFlow("if (!$T.isEmpty(processName))", TypeUtil.TextUtils);
+            methodBuilder.addStatement("$T eventRemoteData = new $T()", TypeUtil.bundle, TypeUtil.bundle);
+            methodBuilder.addStatement("eventRemoteData.putString(\"" + eventClassName + "\", $T.class.getName())", eventClass);
+            methodBuilder.addStatement("eventRemoteData.putInt(\"methodIndex\", $L)", methodIndex);
+            for (int i = 0; i < typeParameters.size(); i++) {
+                VariableElement variableElement = typeParameters.get(i);
+//                TypeName typeName = TypeName.get(variableElement.asType());
+                TypeMirror typeMirror = variableElement.asType();
+                String paramsName = variableElement.getSimpleName().toString();
+                if (TypeUtil.isIInterfaceType(typeMirror)) {
+                    methodBuilder.addStatement("$T.putBinder(eventRemoteData, \"paramValue$L\", ($T)$L)", TypeUtil.Util, i, TypeUtil.IBinder, paramsName);
+                } else {
+                    String putMethodName = TypeUtil.getBundlePutMethodName(variableElement.asType());
+                    if (putMethodName == null) {
+                        methodBuilder.addStatement("//not support this type, only support java baseType,baseType's array,bundle,implements Parcelable,Parcelable[],implements Serializable");
+                    }
+                    methodBuilder.addStatement("eventRemoteData.$L(\"paramValue$L\", $L)", putMethodName, i, paramsName);
+                }
+            }
+            methodBuilder.addStatement("$T.postRemote(processName, eventRemoteData)", TypeUtil.Util);
+
+            methodBuilder.nextControlFlow("else");
+        }
+
+        ParameterizedTypeName registerWithEventTypeName = ParameterizedTypeName.get(TypeUtil.Register, eventClass);
+
+        VariableElement fisrtParamIsFilter = null;
+        if (!typeParameters.isEmpty()) {
+            VariableElement variableElement = typeParameters.get(0);
+            if (variableElement != null && TypeUtil.isFilterType(variableElement.asType())) {
+                fisrtParamIsFilter = variableElement;
+            }
+        }
+
+        methodBuilder.beginControlFlow("for (final $T register : registers.values())", registerWithEventTypeName);
+        if (fisrtParamIsFilter != null) {
+//            if (filter == null || filter.accept(register.getEvent())) {
+            String paramsName = fisrtParamIsFilter.getSimpleName().toString();
+            methodBuilder.beginControlFlow("if ($L == null || $L.accept(register.getEvent()))", paramsName, paramsName);
+        }
+
+        methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
+        methodBuilder.addCode("@Override\n");
+        methodBuilder.beginControlFlow("public void run()");
+        methodBuilder.beginControlFlow("if (register.isRegister())");
+        methodBuilder.addStatement(invokeStringBuilder.toString());
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow("");
+
+        methodBuilder.addStatement("$T.post(register.getEvent(), isPostMainThread, runnable)", TypeUtil.Util);
+
+        if (fisrtParamIsFilter != null) {
+            methodBuilder.endControlFlow();
+        }
+
+        methodBuilder.endControlFlow();
+
+        if (isRemoteEvent) {
+            methodBuilder.endControlFlow();
+        }
+        return methodBuilder.build();
     }
 
+//====================== 旧版createEventImpMethod start  ========
     //    @Override
 //    public void onReceiverMessage(final int messageId, final String message) {
 //        if (!TextUtils.isEmpty(processName)) {
@@ -132,80 +257,82 @@ public class EventProxyBuilder {
 //            }
 //        }
 //    }
-    private MethodSpec createEventImpMethod(boolean isRemoteEvent, int methodIndex, String eventImpPackageName, String eventProxyName, TypeName eventClass, ExecutableElement executableElement) {
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(executableElement.getSimpleName().toString());
-        methodBuilder.addAnnotation(Override.class);
-        Set<Modifier> modifiers = new HashSet<>(executableElement.getModifiers());
-        modifiers.remove(Modifier.ABSTRACT);
-        methodBuilder.addModifiers(modifiers);
-        methodBuilder.returns(TypeName.get(executableElement.getReturnType()));
-        for (TypeMirror typeMirror : executableElement.getThrownTypes()) {
-            methodBuilder.addException(TypeName.get(typeMirror));
-        }
-        for (TypeParameterElement typeParameterElement : executableElement.getTypeParameters()) {
-            methodBuilder.addTypeVariable(toTypeVariableName(typeParameterElement));
-        }
+//    private MethodSpec createEventImpMethod(boolean isRemoteEvent, int methodIndex, String eventImpPackageName, String eventProxyName, TypeName eventClass, ExecutableElement executableElement) {
+//        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(executableElement.getSimpleName().toString());
+//        methodBuilder.addAnnotation(Override.class);
+//        Set<Modifier> modifiers = new HashSet<>(executableElement.getModifiers());
+//        modifiers.remove(Modifier.ABSTRACT);
+//        methodBuilder.addModifiers(modifiers);
+//        methodBuilder.returns(TypeName.get(executableElement.getReturnType()));
+//        for (TypeMirror typeMirror : executableElement.getThrownTypes()) {
+//            methodBuilder.addException(TypeName.get(typeMirror));
+//        }
+//        for (TypeParameterElement typeParameterElement : executableElement.getTypeParameters()) {
+//            methodBuilder.addTypeVariable(toTypeVariableName(typeParameterElement));
+//        }
+//
+//        List<? extends VariableElement> typeParameters = executableElement.getParameters();
+//        StringBuilder invokeStringBuilder = new StringBuilder("iEvent.").append(executableElement.getSimpleName().toString()).append("(");
+//        for (VariableElement typeParameter : typeParameters) {
+//            String paramsName = typeParameter.getSimpleName().toString();
+//            methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName, Modifier.FINAL);
+//            invokeStringBuilder.append(paramsName).append(", ");
+//        }
+//        if (invokeStringBuilder.charAt(invokeStringBuilder.length() - 2) == ',' && invokeStringBuilder.charAt(invokeStringBuilder.length() - 1) == ' ') {
+//            invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
+//            invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
+//        }
+//        invokeStringBuilder.append(")");
+//        messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + invokeStringBuilder + "  executableElement:" + executableElement);
+//        if (isRemoteEvent) {
+//            methodBuilder.beginControlFlow("if(!$T.isEmpty(processName))", TypeUtil.TextUtils);
+//            methodBuilder.addStatement("$T eventRemoteData = new $T()", TypeUtil.bundle, TypeUtil.bundle);
+//            methodBuilder.addStatement("eventRemoteData.putString(\"eventProxyClassName\", getClass().getName())");
+//            methodBuilder.addStatement("eventRemoteData.putInt(\"methodIndex\", $L)", methodIndex);
+//            for (int i = 0; i < typeParameters.size(); i++) {
+//                VariableElement variableElement = typeParameters.get(i);
+////                TypeName typeName = TypeName.get(variableElement.asType());
+//                String putMethodName = TypeUtil.getBundlePutMethodName(variableElement.asType());
+//                String paramsName = variableElement.getSimpleName().toString();
+//                if (putMethodName == null) {
+//                    methodBuilder.addStatement("//not support this type, only support java baseType,baseType's array,bundle,implements Parcelable,Parcelable[],implements Serializable");
+//                }
+//                methodBuilder.addStatement("eventRemoteData.$L(\"paramValue$L\", $L)", putMethodName, i, paramsName);
+//            }
+//            methodBuilder.addStatement("$T.postRemote(processName, eventRemoteData)", TypeUtil.Util);
+//
+//            methodBuilder.nextControlFlow("else");
+//        }
+//
+//        methodBuilder.beginControlFlow("for(final $T iEvent : iEvents)", eventClass);
+//        methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
+//        methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode()");
+//        methodBuilder.beginControlFlow("if($T.isSyncInvoke(isPostMainThread, receiveThreadMode))", TypeUtil.Util);
+//        methodBuilder.addStatement(invokeStringBuilder.toString());
+//        methodBuilder.nextControlFlow("else");
+//        methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
+//        methodBuilder.addCode("@Override\n");
+//        methodBuilder.beginControlFlow("public void run()");
+//        methodBuilder.addStatement(invokeStringBuilder.toString());
+//        methodBuilder.endControlFlow();
+//        methodBuilder.endControlFlow("");
+//
+//        methodBuilder.beginControlFlow("if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread))");
+//        methodBuilder.addStatement("$T.postMain(runnable)", TypeUtil.Util);
+//        methodBuilder.nextControlFlow("else");
+//        methodBuilder.addStatement("$T.postThread(runnable)", TypeUtil.Util);
+//        methodBuilder.endControlFlow();
+//
+//        methodBuilder.endControlFlow();
+//        methodBuilder.endControlFlow();
+//
+//        if (isRemoteEvent) {
+//            methodBuilder.endControlFlow();
+//        }
+//        return methodBuilder.build();
+//    }
+    //====================== 旧版createEventImpMethod end  ========
 
-        List<? extends VariableElement> typeParameters = executableElement.getParameters();
-        StringBuilder invokeStringBuilder = new StringBuilder("iEvent.").append(executableElement.getSimpleName().toString()).append("(");
-        for (VariableElement typeParameter : typeParameters) {
-            String paramsName = typeParameter.getSimpleName().toString();
-            methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName, Modifier.FINAL);
-            invokeStringBuilder.append(paramsName).append(", ");
-        }
-        if (invokeStringBuilder.charAt(invokeStringBuilder.length() - 2) == ',' && invokeStringBuilder.charAt(invokeStringBuilder.length() - 1) == ' ') {
-            invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
-            invokeStringBuilder.deleteCharAt(invokeStringBuilder.length() - 1);
-        }
-        invokeStringBuilder.append(")");
-        messager.printMessage(Diagnostic.Kind.NOTE, " createEventImpMethod stringBuilder:" + invokeStringBuilder + "  executableElement:" + executableElement);
-        if (isRemoteEvent) {
-            methodBuilder.beginControlFlow("if(!$T.isEmpty(processName))", TypeUtil.TextUtils);
-            methodBuilder.addStatement("$T eventRemoteData = new $T()", TypeUtil.bundle, TypeUtil.bundle);
-            methodBuilder.addStatement("eventRemoteData.putString(\"eventProxyClassName\", getClass().getName())");
-            methodBuilder.addStatement("eventRemoteData.putInt(\"methodIndex\", $L)", methodIndex);
-            for (int i = 0; i < typeParameters.size(); i++) {
-                VariableElement variableElement = typeParameters.get(i);
-//                TypeName typeName = TypeName.get(variableElement.asType());
-                String putMethodName = TypeUtil.getBundlePutMethodName(variableElement.asType());
-                String paramsName = variableElement.getSimpleName().toString();
-                if (putMethodName == null) {
-                    methodBuilder.addStatement("//not support this type, only support java baseType,baseType's array,bundle,implements Parcelable,Parcelable[],implements Serializable");
-                }
-                methodBuilder.addStatement("eventRemoteData.$L(\"paramValue$L\", $L)", putMethodName, i, paramsName);
-            }
-            methodBuilder.addStatement("$T.postRemote(processName, eventRemoteData)", TypeUtil.Util);
-
-            methodBuilder.nextControlFlow("else");
-        }
-
-        methodBuilder.beginControlFlow("for(final $T iEvent : iEvents)", eventClass);
-        methodBuilder.addStatement("$T subscribe = iEvent.getClass().getAnnotation($T.class)", TypeUtil.Subscribe, TypeUtil.Subscribe);
-        methodBuilder.addStatement("int receiveThreadMode = subscribe == null ? Subscribe.POSTING : subscribe.receiveThreadMode()");
-        methodBuilder.beginControlFlow("if($T.isSyncInvoke(isPostMainThread, receiveThreadMode))", TypeUtil.Util);
-        methodBuilder.addStatement(invokeStringBuilder.toString());
-        methodBuilder.nextControlFlow("else");
-        methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
-        methodBuilder.addCode("@Override\n");
-        methodBuilder.beginControlFlow("public void run()");
-        methodBuilder.addStatement(invokeStringBuilder.toString());
-        methodBuilder.endControlFlow();
-        methodBuilder.endControlFlow("");
-
-        methodBuilder.beginControlFlow("if ((receiveThreadMode == Subscribe.MAIN) || (receiveThreadMode == Subscribe.POSTING && isPostMainThread))");
-        methodBuilder.addStatement("$T.postMain(runnable)", TypeUtil.Util);
-        methodBuilder.nextControlFlow("else");
-        methodBuilder.addStatement("$T.postThread(runnable)", TypeUtil.Util);
-        methodBuilder.endControlFlow();
-
-        methodBuilder.endControlFlow();
-        methodBuilder.endControlFlow();
-
-        if (isRemoteEvent) {
-            methodBuilder.endControlFlow();
-        }
-        return methodBuilder.build();
-    }
 
     //    @Override
 //    public void onRemoteEvent(Bundle eventRemoteData) {
@@ -238,7 +365,13 @@ public class EventProxyBuilder {
                 VariableElement typeParameter = typeParameters.get(paramIndex);
                 TypeMirror typeMirror = typeParameter.asType();
                 String methodName = TypeUtil.getBundleGetMethodName(typeMirror);
-                if (TypeUtil.isNeedCast(typeMirror)) {
+                if (TypeUtil.isIInterfaceType(typeMirror)) {
+                    invokeMethod.append("$T.Stub.asInterface(($T)data.$L(\"paramValue$L\"))");
+                    args.add(typeParameter.asType());
+                    args.add(TypeUtil.IBinder);
+                    args.add(methodName);
+                    args.add(paramIndex);
+                } else if (TypeUtil.isNeedCast(typeMirror)) {
                     invokeMethod.append("($T)data.$L(\"paramValue$L\")");
                     if (paramIndex != typeParameters.size() - 1) {
                         invokeMethod.append(", ");

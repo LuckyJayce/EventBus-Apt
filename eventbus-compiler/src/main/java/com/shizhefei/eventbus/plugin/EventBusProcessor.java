@@ -24,7 +24,9 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
-
+/**
+ * Created by LuckyJayce on 2017/3/21.
+ */
 @AutoService(Processor.class)
 public class EventBusProcessor extends AbstractProcessor {
 

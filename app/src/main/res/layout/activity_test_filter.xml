@@ -2,28 +2,21 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_second"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.shizhefei.eventbusdemo.SecondActivity">
+    android:orientation="vertical">
 
     <Button
         android:id="@+id/sendButton"
-        android:text="发送本地事件"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:text="发送事件（不过滤）" />
 
 
     <Button
-        android:text="发送远程事件"
         android:id="@+id/sendButton2"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
-    <Button
-        android:text="发送远程带有回调的事件"
-        android:id="@+id/sendButton3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:text="发送过滤当前页面接收者1" />
 
 </LinearLayout>

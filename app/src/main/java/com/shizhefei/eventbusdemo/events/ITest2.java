@@ -1,11 +1,11 @@
-package com.shizhefei.eventbus.events;
+package com.shizhefei.eventbusdemo.events;
 
 import android.os.Bundle;
 import android.os.Parcelable;
 
 import com.shizhefei.eventbus.IRemoteEvent;
-import com.shizhefei.eventbus.Person;
-import com.shizhefei.eventbus.Point;
+import com.shizhefei.eventbusdemo.Person;
+import com.shizhefei.eventbusdemo.Point;
 import com.shizhefei.eventbus.annotation.Event;
 
 /**

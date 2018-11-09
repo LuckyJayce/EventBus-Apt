@@ -1,4 +1,4 @@
-package com.shizhefei.eventbus;
+package com.shizhefei.eventbusdemo;
 
 /**
  * Created by LuckyJayce on 2017/5/6.

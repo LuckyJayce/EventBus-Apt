@@ -8,8 +8,11 @@ import android.content.pm.ServiceInfo;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Created by LuckyJayce
+ */
 class EventProcessHandler implements IEventHandler {
-    private Map<Class, Map<String, EventProxy>> eventProxyMap = new HashMap<>();
+    private Map<Class, Map<String, IEvent>> eventProxyMap = new HashMap<>();
     private EventHandler eventHandler = new EventHandler();
     private boolean remoteEvent;
 
@@ -18,13 +21,13 @@ class EventProcessHandler implements IEventHandler {
     }
 
     @Override
-    public <EVENT extends IEvent> EVENT post(Class<? extends EventProxy<EVENT>> eventProxyClass) {
-        return eventHandler.post(eventProxyClass);
+    public <EVENT extends IEvent> EVENT post(Class<EVENT> eventInterface) {
+        return eventHandler.post(eventInterface);
     }
 
     @Override
-    public <EVENT extends IEvent> EVENT postMain(Class<? extends EventProxy<EVENT>> eventProxyClass) {
-        return eventHandler.postMain(eventProxyClass);
+    public <EVENT extends IEvent> EVENT postMain(Class<EVENT> eventInterface) {
+        return eventHandler.postMain(eventInterface);
     }
 
     @Override
@@ -46,28 +49,22 @@ class EventProcessHandler implements IEventHandler {
         return eventHandler.isRegister(subscriber);
     }
 
-    public synchronized <EVENT extends IEvent> EVENT postRemote(Class<? extends EventProxy<EVENT>> eventProxyClass, String processName) {
+    public synchronized <EVENT extends IRemoteEvent> EVENT postRemote(Class<EVENT> eventClass, String processName) {
         if (!remoteEvent) {
             throw new RuntimeException("你在EventBus.init的時候声明不执行跨进程的event,如果要执行跨进程的event改为EventBus.init(context,true)");
         }
         checkServiceRegister();
-        Class<EVENT> eventClass = Util.getEventClass(eventProxyClass);
-        Map<String, EventProxy> processEventProxyMap = eventProxyMap.get(eventClass);
+        Map<String, IEvent> processEventProxyMap = eventProxyMap.get(eventClass);
         if (processEventProxyMap == null) {
             processEventProxyMap = new HashMap<>();
             eventProxyMap.put(eventClass, processEventProxyMap);
         }
-        EventProxy eventProxy = processEventProxyMap.get(processName);
+        IEvent eventProxy = processEventProxyMap.get(processName);
         if (eventProxy == null) {
-            eventProxy = EventProxyFactory.createRemote(eventProxyClass, processName);
+            eventProxy = EventBus.getEventProxyFactory().createRemoteProxy(eventClass, processName);
             processEventProxyMap.put(processName, eventProxy);
         }
         return eventClass.cast(eventProxy);
-    }
-
-    public EventProxy getPostMainEventProxy(Class<? extends EventProxy> eventClass) {
-        Class c = eventClass;
-        return eventHandler.getPostMainEventProxy(c);
     }
 
     private boolean hasCheckService;

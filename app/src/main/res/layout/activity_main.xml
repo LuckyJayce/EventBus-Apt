@@ -6,26 +6,39 @@
     android:layout_height="match_parent"
     android:background="#666"
     android:orientation="vertical"
-    tools:context="com.shizhefei.eventbus.MainActivity">
+    tools:context="com.shizhefei.eventbusdemo.MainActivity">
 
     <fragment
         android:id="@+id/fragment"
-        android:name="com.shizhefei.eventbus.ReceiverFragment"
+        android:name="com.shizhefei.eventbusdemo.ReceiverFragment"
         android:layout_width="match_parent"
         android:layout_height="150dp" />
 
     <fragment
         android:id="@+id/fragment3"
-        android:name="com.shizhefei.eventbus.SenderFragment"
+        android:name="com.shizhefei.eventbusdemo.SenderFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="10dp"
         android:layout_weight="1" />
 
-    <Button
-        android:text="其他进程页面"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/button2" />
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="测试跨进程" />
+
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="测试过滤接收者" />
+    </LinearLayout>
 
 </LinearLayout>

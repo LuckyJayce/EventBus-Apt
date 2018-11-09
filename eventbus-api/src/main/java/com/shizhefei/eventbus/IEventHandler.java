@@ -6,15 +6,21 @@ package com.shizhefei.eventbus;
  */
 public interface IEventHandler {
     /**
-     * 获取动态代理实现的IEvent，用来发送事件
+     * 获取事件分发的代理类实例，用来发送事件，哪个线程发布事件就在哪个线程接收事件，不过注册事件接收的类还可以添加Subscribe定义事件接口的线程
      *
-     * @param eventProxyClass 事件的proxyClass
      * @param <EVENT>    IEvent的class的泛型
+     * @param eventInterface 事件的proxyClass
      * @return
      */
-    <EVENT extends IEvent> EVENT post(Class<? extends EventProxy<EVENT>> eventProxyClass);
+    <EVENT extends IEvent> EVENT post(Class<EVENT> eventInterface);
 
-    <EVENT extends IEvent> EVENT postMain(Class<? extends EventProxy<EVENT>> eventProxyClass);
+    /**
+     * 获取事件分发的代理类实例（在主线程发布事件），用来发送事件，哪个线程发布事件就在哪个线程接收事件，不过注册事件接收的类还可以添加Subscribe定义事件接口的线程
+     * @param eventInterface
+     * @param <EVENT>
+     * @return
+     */
+    <EVENT extends IEvent> EVENT postMain(Class<EVENT> eventInterface);
 
     /**
      * 注册这个对象的所有event接口

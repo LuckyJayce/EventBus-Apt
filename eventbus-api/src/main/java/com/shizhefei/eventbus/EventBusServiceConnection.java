@@ -22,6 +22,9 @@ import static android.content.Context.ACTIVITY_SERVICE;
 
 class EventBusServiceConnection implements ServiceConnection {
     private volatile EventServiceExecutor eventServiceExecutor;
+    /**
+     * key 进程名，value event数据 的事件队列
+     */
     private Queue<Pair<String, Bundle>> eventDataQueue = new ConcurrentLinkedQueue<>();
     private String currentProcessName;
     private int currentProcessId = -1;
@@ -56,38 +59,19 @@ class EventBusServiceConnection implements ServiceConnection {
     }
 
     public int getCurrentProcessId() {
-        if (currentProcessId == -1) {
-            iniProcessInfo();
-        }
-        return currentProcessId;
+        return android.os.Process.myPid();
     }
 
     public String getCurrentProcessName() {
-        if (currentProcessId == -1) {
-            iniProcessInfo();
-        }
-        return currentProcessName;
-    }
-
-    private void iniProcessInfo() {
-        int pid = android.os.Process.myPid();
-        String processName = null;
-        ActivityManager activityManager = (ActivityManager) EventBus.getContext().getSystemService(ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> list = activityManager.getRunningAppProcesses();
-        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : list) {
-            if (runningAppProcessInfo.pid == pid) {
-                processName = runningAppProcessInfo.processName;
-                break;
-            }
-        }
-        currentProcessId = pid;
-        currentProcessName = processName;
+        return Util.getCurrentProcessName();
     }
 
     public void postEvent(String processName, Bundle eventRemoteData) {
         if (isConnected()) {
             try {
                 eventServiceExecutor.postEvent(processName, eventRemoteData);
+            } catch (RemoteException e) {
+                e.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -113,13 +97,7 @@ class EventBusServiceConnection implements ServiceConnection {
     private static class ProcessEventRemoteExecutor extends EventProcessExecutor.Stub {
         @Override
         public void postEvent(Bundle remoteEventData) throws RemoteException {
-            String eventProxyClassName = remoteEventData.getString("eventProxyClassName");
-            try {
-                Class clas = Class.forName(eventProxyClassName);
-                EventBus.getPostMainEventProxy(clas).onRemoteEvent(remoteEventData);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
+            EventBus.getEventProxyFactory().onRemoteEvent(remoteEventData);
         }
     }
 }

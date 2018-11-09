@@ -32,12 +32,16 @@ public class TypeUtil {
     public static final ClassName bundle = ClassName.get("android.os", "Bundle");
     public static final ClassName TextUtils = ClassName.get("android.text", "TextUtils");
     public static final ClassName Parcelable = ClassName.get("android.os", "Parcelable");
+    public static final ClassName Register = ClassName.get("com.shizhefei.eventbus", "Register");
+    public static final ClassName IBinder = ClassName.get("android.os", "IBinder");
     public static final TypeName ParcelableArray = ArrayTypeName.of(Parcelable);
     public static final ClassName serializable = ClassName.get(Serializable.class);
     public static final ArrayTypeName serializableArray = ArrayTypeName.of(serializable);
     private static ProcessingEnvironment staticProcessingEnvironment;
     private static TypeMirror parcelableType;
     private static TypeMirror serializableType;
+    private static TypeMirror filter;
+    private static TypeMirror IInterface;
 
     public static String getBundlePutMethodName(TypeMirror typeMirror) {
         TypeName typeName = ClassName.get(typeMirror);
@@ -60,6 +64,10 @@ public class TypeUtil {
         return null;
     }
 
+    public static boolean isIInterfaceType(TypeMirror typeMirror) {
+        return staticProcessingEnvironment.getTypeUtils().isSubtype(typeMirror, IInterface);
+    }
+
     public static boolean isNeedCast(TypeMirror typeMirror) {
         TypeName typeName = ClassName.get(typeMirror);
         return !bundleMethodNames.containsKey(typeName);
@@ -69,8 +77,9 @@ public class TypeUtil {
         String method = getBundlePutMethodName(typeMirror);
         if (method != null) {
             return method.replaceFirst("put", "get");
+        } else {
+            return "get";
         }
-        return method;
     }
 
     private static boolean isSerializableType(TypeMirror typeMirror) {
@@ -81,6 +90,11 @@ public class TypeUtil {
         }
         return staticProcessingEnvironment.getTypeUtils().isSubtype(typeMirror, serializableType);
     }
+
+    public static boolean isFilterType(TypeMirror typeMirror) {
+        return staticProcessingEnvironment.getTypeUtils().isSubtype(typeMirror, filter);
+    }
+
 
     private static Map<TypeName, String> bundleMethodNames = new HashMap<>();
 
@@ -124,10 +138,16 @@ public class TypeUtil {
         staticProcessingEnvironment = processingEnvironment;
         Elements elementUtils = staticProcessingEnvironment.getElementUtils();
         parcelableType = elementUtils.getTypeElement("android.os.Parcelable").asType();
+        IInterface = elementUtils.getTypeElement("android.os.IInterface").asType();
         serializableType = elementUtils.getTypeElement(Serializable.class.getName()).asType();
+        filter = elementUtils.getTypeElement("com.shizhefei.eventbus.IEvent.Filter").asType();
         //        DeclaredType wildcardMap = typeUtils.getDeclaredType(
 //                elementUtils.getTypeElement("java.util.Map"),
 //                typeUtils.getWildcardType(null, null),
 //                typeUtils.getWildcardType(null, null));
+    }
+
+    public static ProcessingEnvironment getProcessingEnvironment() {
+        return staticProcessingEnvironment;
     }
 }

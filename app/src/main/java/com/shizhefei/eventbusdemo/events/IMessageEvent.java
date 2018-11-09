@@ -1,8 +1,7 @@
-package com.shizhefei.eventbus.events;
+package com.shizhefei.eventbusdemo.events;
 
 import com.shizhefei.eventbus.IRemoteEvent;
 import com.shizhefei.eventbus.annotation.Event;
-import com.shizhefei.eventbus.IEvent;
 
 /**
  * Created by LuckyJayce on 2017/3/20.

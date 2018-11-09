@@ -4,6 +4,7 @@ apply from: rootProject.file("buildsystem/library.gradle")
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    provided project(':eventbus-annotation')
 }
 
 //添加

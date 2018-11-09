@@ -1,4 +1,4 @@
-package com.shizhefei.eventbus;
+package com.shizhefei.eventbusdemo;
 
 import android.os.Parcel;
 import android.os.Parcelable;

@@ -1,4 +1,4 @@
-package com.shizhefei.news;
+package com.shizhefei.eventbusdemo.news;
 
 import com.shizhefei.eventbus.IEvent;
 import com.shizhefei.eventbus.annotation.Event;

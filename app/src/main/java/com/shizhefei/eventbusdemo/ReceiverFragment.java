@@ -1,4 +1,4 @@
-package com.shizhefei.eventbus;
+package com.shizhefei.eventbusdemo;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -9,15 +9,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.shizhefei.eventbus.EventBus;
+import com.shizhefei.eventbus.Subscribe;
 import com.shizhefei.eventbus.demo.R;
-import com.shizhefei.eventbus.events.IAccountEvent;
-import com.shizhefei.eventbus.events.IMessageEvent;
+import com.shizhefei.eventbusdemo.events.IAccountEventHAHAHAHAHHALLLLL;
+import com.shizhefei.eventbusdemo.events.IMessageEvent;
 
 /**
  * Created by LuckyJayce on 2017/3/20.
  */
 @Subscribe(receiveThreadMode = Subscribe.MAIN)
-public class ReceiverFragment extends Fragment implements IMessageEvent, IAccountEvent{
+public class ReceiverFragment extends Fragment implements IMessageEvent, IAccountEventHAHAHAHAHHALLLLL {
     private TextView textView;
     private StringBuilder stringBuilder = new StringBuilder();
 
