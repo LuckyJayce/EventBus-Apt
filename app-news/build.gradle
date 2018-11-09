@@ -1,25 +1,6 @@
 apply plugin: 'com.android.library'
+apply from: rootProject.file("buildsystem/library.gradle")
 
-android {
-    compileSdkVersion 28
-    buildToolsVersion '28.0.3'
-
-    defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
@@ -29,6 +10,6 @@ dependencies {
     compile project(':eventbus-api')
     compile project(':eventbus-annotation')
     annotationProcessor project(':eventbus-compiler')
-    compile 'com.android.support:appcompat-v7:26.+'
+    implementation rootProject.ext.dependencies["appcompat-v7"]
     testCompile 'junit:junit:4.12'
 }
