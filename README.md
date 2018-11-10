@@ -149,7 +149,7 @@ Indicator 取代 tabhost，实现网易顶部tab，新浪微博主页底部tab�
 简化RecyclerView的多种type的adapter，Fragment可以动态添加到RecyclerView上，实现复杂的界面分多个模块开发
 
 **4.https://github.com/LuckyJayce/EventBus-Apt**  
-事件总线，通过动态代理接口的形式发布,接收事件。定义一个接口把事件发给注册并实现接口的类
+事件总线，通过定义事件接口，apt方式生成事件代理分发事件给注册并实现的接口类
 
 **5.https://github.com/LuckyJayce/LargeImage**  
 大图加载，可供学习
