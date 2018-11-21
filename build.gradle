@@ -22,8 +22,8 @@ allprojects {
 }
 
 ext {
-    VERSION_NAME = '1.2.0'
-    VERSION_CODE = 12
+    VERSION_NAME = '1.2.1'
+    VERSION_CODE = 13
 }
 
 task clean(type: Delete) {
