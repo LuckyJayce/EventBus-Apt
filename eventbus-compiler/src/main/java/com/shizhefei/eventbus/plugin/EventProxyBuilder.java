@@ -123,13 +123,13 @@ public class EventProxyBuilder {
 //                Runnable runnable = new Runnable() {
 //                    @Override
 //                    public void run() {
-//                       IMessageEvent eventReceiver = register.getEvent();
+//                       IMessageEvent eventReceiver = register.getReceiver();
 //                       if (eventReceiver != null) {
 //                           eventReceiver.onReceiveMessage(message);
 //                       }
 //                    }
 //                };
-//                Util.post(register.getEvent(), isPostMainThread, runnable);
+//                Util.post(register.getReceiver(), isPostMainThread, runnable);
 //            }
 //        }
 //    }
@@ -198,22 +198,22 @@ public class EventProxyBuilder {
 
         methodBuilder.beginControlFlow("for (final $T register : registers)", registerWithEventTypeName);
         if (fisrtParamIsFilter != null) {
-//            if (filter == null || filter.accept(register.getEvent())) {
+//            if (filter == null || filter.accept(register.getReceiver())) {
             String paramsName = fisrtParamIsFilter.getSimpleName().toString();
-            methodBuilder.beginControlFlow("if ($L == null || $L.accept(register.getEvent()))", paramsName, paramsName);
+            methodBuilder.beginControlFlow("if ($L == null || $L.accept(register.getReceiver()))", paramsName, paramsName);
         }
 
         methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
         methodBuilder.addCode("@Override\n");
         methodBuilder.beginControlFlow("public void run()");
-        methodBuilder.addStatement("$T eventReceiver = register.getEvent()", eventClass);
+        methodBuilder.addStatement("$T eventReceiver = register.getReceiver()", eventClass);
         methodBuilder.beginControlFlow("if (eventReceiver != null)");
         methodBuilder.addStatement(invokeStringBuilder.toString());
         methodBuilder.endControlFlow();
         methodBuilder.endControlFlow();
         methodBuilder.endControlFlow("");
 
-        methodBuilder.addStatement("$T.post(register.getEvent(), isPostMainThread, runnable)", TypeUtil.Util);
+        methodBuilder.addStatement("$T.post(register.getReceiver(), isPostMainThread, runnable)", TypeUtil.Util);
 
         if (fisrtParamIsFilter != null) {
             methodBuilder.endControlFlow();

@@ -1,17 +1,17 @@
 package com.shizhefei.eventbus;
 
 public class Register<EVENT> {
-    private EVENT event;
+    private EVENT receiver;
 
-    public Register(EVENT event) {
-        this.event = event;
+    public Register(EVENT receiver) {
+        this.receiver = receiver;
     }
 
-    public EVENT getEvent() {
-        return event;
+    public EVENT getReceiver() {
+        return receiver;
     }
 
-    public void setEvent(EVENT event){
-        this.event = event;
+    public void setReceiver(EVENT receiver){
+        this.receiver = receiver;
     }
 }

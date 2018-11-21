@@ -130,14 +130,14 @@ public class EventProxyRuntimeFactory implements IEventProxyFactory {
                     }
                 }
                 for (final Register<EVENT> register : registers) {
-                    if (filter == null || filter.accept(register.getEvent())) {
-                        Util.post(register.getEvent(), isPostMainThread, new Runnable() {
+                    if (filter == null || filter.accept(register.getReceiver())) {
+                        Util.post(register.getReceiver(), isPostMainThread, new Runnable() {
                             @Override
                             public void run() {
-                                EVENT event = register.getEvent();
+                                EVENT event = register.getReceiver();
                                 if (event != null) {
                                     try {
-                                        method.invoke(register.getEvent(), args);
+                                        method.invoke(register.getReceiver(), args);
                                     } catch (IllegalAccessException e) {
                                         e.printStackTrace();
                                     } catch (InvocationTargetException e) {

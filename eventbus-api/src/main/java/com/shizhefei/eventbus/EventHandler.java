@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -109,9 +108,9 @@ class EventHandler implements IEventHandler {
 
         void removeRegister(EVENT event) {
             for (Register<EVENT> register : registers) {
-                if (register.getEvent().equals(event)) {
+                if (register.getReceiver().equals(event)) {
                     registers.remove(register);
-                    register.setEvent(null);
+                    register.setReceiver(null);
                     break;
                 }
             }
