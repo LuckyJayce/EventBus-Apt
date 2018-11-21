@@ -13,15 +13,15 @@ greenrobot的EventBus是通过 onEvent的方式，然后定义Event实体类
 
 ```
 //eventbus 核心api
-compile 'com.shizhefei:eventbus-api:1.2.0'
+compile 'com.shizhefei:eventbus-api:1.2.1'
 //eventbus 注解
-compile 'com.shizhefei:eventbus-annotation:1.2.0'
+compile 'com.shizhefei:eventbus-annotation:1.2.1'
 ```
 
 在定义Event接口的Module添加，以便于生成Event接口的代理
 
 ```
-annotationProcessor 'com.shizhefei:eventbus-compiler:1.2.0'
+annotationProcessor 'com.shizhefei:eventbus-compiler:1.2.1'
 ```
 
 # 在Application初始化
