@@ -119,12 +119,13 @@ public class EventProxyBuilder {
 //            eventRemoteData.putString("paramValue2", message);
 //            Util.postRemote(processName, eventRemoteData);
 //        } else {
-//            for (final Register<IMessageEvent> register : registers.values()) {
+//            for (final Register<IMessageEvent> register : registers) {
 //                Runnable runnable = new Runnable() {
 //                    @Override
 //                    public void run() {
-//                       if (register.isRegister()) {
-//                           register.getEvent().onReceiveMessage(message);
+//                       IMessageEvent eventReceiver = register.getEvent();
+//                       if (eventReceiver != null) {
+//                           eventReceiver.onReceiveMessage(message);
 //                       }
 //                    }
 //                };
@@ -147,7 +148,7 @@ public class EventProxyBuilder {
         }
 
         List<? extends VariableElement> typeParameters = executableElement.getParameters();
-        StringBuilder invokeStringBuilder = new StringBuilder("register.getEvent().").append(executableElement.getSimpleName().toString()).append("(");
+        StringBuilder invokeStringBuilder = new StringBuilder("eventReceiver.").append(executableElement.getSimpleName().toString()).append("(");
         for (VariableElement typeParameter : typeParameters) {
             String paramsName = typeParameter.getSimpleName().toString();
             methodBuilder.addParameter(TypeName.get(typeParameter.asType()), paramsName, Modifier.FINAL);
@@ -195,7 +196,7 @@ public class EventProxyBuilder {
             }
         }
 
-        methodBuilder.beginControlFlow("for (final $T register : registers.values())", registerWithEventTypeName);
+        methodBuilder.beginControlFlow("for (final $T register : registers)", registerWithEventTypeName);
         if (fisrtParamIsFilter != null) {
 //            if (filter == null || filter.accept(register.getEvent())) {
             String paramsName = fisrtParamIsFilter.getSimpleName().toString();
@@ -205,7 +206,8 @@ public class EventProxyBuilder {
         methodBuilder.beginControlFlow("$T runnable = new $T()", Runnable.class, Runnable.class);
         methodBuilder.addCode("@Override\n");
         methodBuilder.beginControlFlow("public void run()");
-        methodBuilder.beginControlFlow("if (register.isRegister())");
+        methodBuilder.addStatement("$T eventReceiver = register.getEvent()", eventClass);
+        methodBuilder.beginControlFlow("if (eventReceiver != null)");
         methodBuilder.addStatement(invokeStringBuilder.toString());
         methodBuilder.endControlFlow();
         methodBuilder.endControlFlow();

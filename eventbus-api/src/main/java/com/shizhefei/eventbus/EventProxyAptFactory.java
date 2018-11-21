@@ -2,6 +2,8 @@ package com.shizhefei.eventbus;
 
 import android.os.Bundle;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -11,7 +13,7 @@ import java.util.Map;
 public class EventProxyAptFactory implements IEventProxyFactory {
 
     @Override
-    public <EVENT extends IEvent> EVENT createLocalProxy(Class<EVENT> eventClass, boolean postMainThread, Map<EVENT, Register<EVENT>> registers) {
+    public <EVENT extends IEvent> EVENT createLocalProxy(Class<EVENT> eventClass, boolean postMainThread, Collection<Register<EVENT>> registers) {
         try {
             String eventProxyClassName = EventProxyNameBuilder.getProxyClassName(eventClass);
             Class<?> eventProxyClass = Class.forName(eventProxyClassName);

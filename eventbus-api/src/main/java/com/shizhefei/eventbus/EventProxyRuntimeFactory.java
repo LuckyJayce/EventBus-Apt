@@ -11,6 +11,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +30,7 @@ public class EventProxyRuntimeFactory implements IEventProxyFactory {
     private static volatile Map<Class<?>, PutArg> bundleMethodNames;
 
     @Override
-    public <EVENT extends IEvent> EVENT createLocalProxy(Class<EVENT> eventInterfaceClass, boolean postMainThread, Map<EVENT, Register<EVENT>> registers) {
+    public <EVENT extends IEvent> EVENT createLocalProxy(Class<EVENT> eventInterfaceClass, boolean postMainThread, Collection<Register<EVENT>> registers) {
         return (EVENT) Proxy.newProxyInstance(eventInterfaceClass.getClassLoader(), new Class<?>[]{eventInterfaceClass}, new ProxyInvocationHandler(eventInterfaceClass, postMainThread, registers));
     }
 
@@ -85,10 +86,10 @@ public class EventProxyRuntimeFactory implements IEventProxyFactory {
     private static class ProxyInvocationHandler<EVENT extends IEvent> implements InvocationHandler {
         private final Class<EVENT> eventInterfaceClass;
         private boolean isPostMainThread;
-        private Map<EVENT, Register<EVENT>> registers;
+        private Collection<Register<EVENT>> registers;
         private String processName;
 
-        public ProxyInvocationHandler(Class<EVENT> eventInterfaceClass, boolean postMainThread, Map<EVENT, Register<EVENT>> registers) {
+        public ProxyInvocationHandler(Class<EVENT> eventInterfaceClass, boolean postMainThread, Collection<Register<EVENT>> registers) {
             this.isPostMainThread = postMainThread;
             this.registers = registers;
             this.eventInterfaceClass = eventInterfaceClass;
@@ -128,12 +129,13 @@ public class EventProxyRuntimeFactory implements IEventProxyFactory {
                         filter = (IEvent.Filter) args[0];
                     }
                 }
-                for (final Register<EVENT> register : registers.values()) {
+                for (final Register<EVENT> register : registers) {
                     if (filter == null || filter.accept(register.getEvent())) {
                         Util.post(register.getEvent(), isPostMainThread, new Runnable() {
                             @Override
                             public void run() {
-                                if (register.isRegister()) {
+                                EVENT event = register.getEvent();
+                                if (event != null) {
                                     try {
                                         method.invoke(register.getEvent(), args);
                                     } catch (IllegalAccessException e) {

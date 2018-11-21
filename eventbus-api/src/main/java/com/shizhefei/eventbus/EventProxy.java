@@ -2,13 +2,15 @@ package com.shizhefei.eventbus;
 
 import android.os.Bundle;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 /**
  * Created by LuckyJayce
  */
 public abstract class EventProxy<EVENT extends IEvent> implements IEvent {
     protected boolean isPostMainThread;
-    protected Map<EVENT, Register<EVENT>> registers;
+    protected Collection<Register<EVENT>> registers;
     protected String processName;
 
     void setPostMainThread(boolean postMainThread) {
@@ -19,7 +21,7 @@ public abstract class EventProxy<EVENT extends IEvent> implements IEvent {
         return isPostMainThread;
     }
 
-    void setEvents(Map<EVENT, Register<EVENT>> events) {
+    void setEvents(Collection<Register<EVENT>> events) {
         this.registers = events;
     }
 

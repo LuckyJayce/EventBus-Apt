@@ -26,11 +26,13 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     implementation rootProject.ext.dependencies["appcompat-v7"]
+
     testCompile 'junit:junit:4.12'
     compile project(':app-news')
     compile project(':eventbus-api')
     compile project(':eventbus-annotation')
     annotationProcessor project(':eventbus-compiler')
+
     //    compile 'com.xiaoenai:EventBus-Api:1.0.0'
     //    compile 'com.xiaoenai:EventBus-Annotation:1.0.0'
     //    annotationProcessor 'com.xiaoenai:EventBus-Compiler:1.0.0'

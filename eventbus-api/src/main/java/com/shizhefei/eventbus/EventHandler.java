@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by LuckyJayce
@@ -43,7 +45,7 @@ class EventHandler implements IEventHandler {
         EventProxyCollections<EVENT> eventProxyCollections = getEventImpCollections(eventInterface);
         EVENT eventProxy = postMainThread ? eventProxyCollections.mainEventProxy : eventProxyCollections.eventProxy;
         if (eventProxy == null) {
-            eventProxy = EventBus.getEventProxyFactory().createLocalProxy(eventInterface, postMainThread, eventProxyCollections.register);
+            eventProxy = EventBus.getEventProxyFactory().createLocalProxy(eventInterface, postMainThread, eventProxyCollections.registers);
             if (postMainThread) {
                 eventProxyCollections.mainEventProxy = eventProxy;
             } else {
@@ -95,18 +97,23 @@ class EventHandler implements IEventHandler {
     private static class EventProxyCollections<EVENT extends IEvent> {
         EVENT eventProxy;
         EVENT mainEventProxy;
+        Queue<Register<EVENT>> registers;
 
-        ConcurrentHashMap<EVENT, Register<EVENT>> register = new ConcurrentHashMap<>();
+        public EventProxyCollections() {
+            registers = new ConcurrentLinkedQueue<>();
+        }
 
         void addRegister(EVENT event) {
-            register.put(event, new Register<>(event, true));
+            registers.add(new Register<>(event));
         }
 
         void removeRegister(EVENT event) {
-            Register<EVENT> register = this.register.remove(event);
-            if (register != null) {
-                register.setIsRegister(false);
-                register.setEvent(null);
+            for (Register<EVENT> register : registers) {
+                if (register.getEvent().equals(event)) {
+                    registers.remove(register);
+                    register.setEvent(null);
+                    break;
+                }
             }
         }
     }

@@ -4,7 +4,9 @@ apply from: rootProject.file("buildsystem/library.gradle")
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+//    api 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     provided project(':eventbus-annotation')
+    api 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru_jdk5:1.0'
 }
 
 //添加

@@ -2,7 +2,10 @@ package com.shizhefei.eventbus;
 
 import android.os.Bundle;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * 生成实现EVENT的分发事件的代理类实例的 工厂
@@ -18,7 +21,7 @@ public interface IEventProxyFactory {
      * @param <EVENT>
      * @return
      */
-    <EVENT extends IEvent> EVENT createLocalProxy(Class<EVENT> eventClass, boolean postMainThread, Map<EVENT, Register<EVENT>> registers);
+    <EVENT extends IEvent> EVENT createLocalProxy(Class<EVENT> eventClass, boolean postMainThread, Collection<Register<EVENT>> registers);
 
     /**
      * 创建跨进程 分发事件的代理类的实例
