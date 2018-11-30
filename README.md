@@ -128,13 +128,9 @@ annotationProcessor 'com.shizhefei:eventbus-compiler:1.2.1'
 
 ```
 # keep 定义的事件接口
--keep interface * implements com.shizhefei.eventbus.IEvent {
-    *;
-}
+-keep interface * implements com.shizhefei.eventbus.IEvent
 #keep apt生成定义的事件接口的Proxy类
--keep class **.*Proxy implements com.shizhefei.eventbus.IEvent {
-    *;
-}
+-keep class **.*Proxy implements com.shizhefei.eventbus.IEvent
 ```
 
 ## 主力类库 ##
